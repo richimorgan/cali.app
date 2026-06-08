@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Calisthenics AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0E0E0F;--surface:#161618;--surface2:#1E1E21;--border:#28282D;
+  --text:#F0EDE6;--muted:#666;--dim:#333;
+  --gold:#D4A843;--teal:#3ABFAA;--red:#E8503A;--blue:#4A8FD4;--purple:#9B72CF;
+  --font-display:'Syne',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --radius:4px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-display);min-height:100vh;overflow-x:hidden}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ── SETUP ── */
+#setup{align-items:center;justify-content:center;padding:48px 24px;text-align:center}
+.setup-logo{font-size:11px;letter-spacing:6px;color:var(--muted);margin-bottom:32px;font-family:var(--font-mono)}
+.setup-title{font-size:clamp(36px,10vw,56px);font-weight:800;line-height:1;margin-bottom:8px;letter-spacing:-2px}
+.setup-title span{color:var(--gold)}
+.setup-sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:48px;font-family:var(--font-mono)}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:400px;text-align:left}
+.setup-label{font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:16px;font-family:var(--font-mono)}
+.level-grid{display:flex;gap:8px;margin-bottom:24px}
+.level-btn{flex:1;padding:14px 4px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:var(--font-mono);font-size:13px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.level-btn.active{background:var(--gold);border-color:var(--gold);color:#0E0E0F;font-weight:700}
+.level-btn small{font-size:7px;letter-spacing:1px;opacity:.7}
+.setup-btn{width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius);color:#0E0E0F;font-family:var(--font-display);font-size:14px;font-weight:800;letter-spacing:2px;cursor:pointer;transition:opacity .15s}
+.setup-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── HOME ── */
+#home{padding:0}
+.home-header{padding:32px 20px 24px;border-bottom:1px solid var(--border)}
+.home-greeting{font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:4px;font-family:var(--font-mono)}
+.home-title{font-size:32px;font-weight:800;letter-spacing:-1px}
+.home-title span{color:var(--gold)}
+.home-actions{display:flex;gap:10px;padding:20px;flex-direction:column}
+.action-btn{padding:18px 20px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;text-align:left;transition:background .1s;width:100%}
+.action-btn:active{background:var(--surface2)}
+.action-btn-primary{background:var(--gold);border-color:var(--gold)}
+.action-btn-primary:active{opacity:.85}
+.action-title{font-size:15px;font-weight:700;color:var(--text);display:block;margin-bottom:2px}
+.action-btn-primary .action-title{color:#0E0E0F}
+.action-desc{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.action-btn-primary .action-desc{color:#0E0E0F;opacity:.7}
+.history-section{padding:0 20px 32px}
+.section-label{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:12px;font-family:var(--font-mono)}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:background .1s}
+.history-card:active{background:var(--surface2)}
+.history-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.history-date{font-size:10px;color:var(--muted);font-family:var(--font-mono)}
+.history-days{font-size:10px;color:var(--gold);font-family:var(--font-mono)}
+.history-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:8px;padding:2px 7px;border-radius:2px;letter-spacing:1px;font-family:var(--font-mono)}
+.tag-focus{background:var(--gold)22;color:var(--gold);border:1px solid var(--gold)44}
+.tag-skill{background:var(--purple)22;color:var(--purple);border:1px solid var(--purple)44}
+.empty-history{font-size:12px;color:var(--muted);font-family:var(--font-mono);padding:16px 0}
+
+/* ── GENERATE FORM ── */
+#generate{overflow-y:auto}
+.gen-header{display:flex;align-items:center;gap:12px;padding:20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+.back-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-mono);font-size:11px;cursor:pointer;padding:8px 12px;border-radius:var(--radius)}
+.gen-title{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.gen-body{padding:20px;display:flex;flex-direction:column;gap:24px;padding-bottom:40px}
+.form-group{display:flex;flex-direction:column;gap:10px}
+.form-label{font-size:9px;letter-spacing:3px;color:var(--muted);font-family:var(--font-mono)}
+.pills-row{display:flex;gap:8px;flex-wrap:wrap}
+.pill-btn{padding:8px 14px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-family:var(--font-mono);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pill-btn.active{border-color:currentColor;font-weight:500}
+.day-config{display:flex;flex-direction:column;gap:12px}
+.day-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.day-row-label{font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;letter-spacing:1px}
+.day-selects{display:flex;gap:8px;flex-wrap:wrap}
+.day-select{flex:1;min-width:100px}
+.select-label{font-size:8px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;letter-spacing:1px}
+select{width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:11px;-webkit-appearance:none;cursor:pointer}
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggle-btn{padding:10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:var(--font-mono);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;text-align:center}
+.toggle-btn.active{background:var(--teal)22;border-color:var(--teal);color:var(--teal)}
+.gen-submit{padding:18px;background:var(--gold);border:none;border-radius:var(--radius);color:#0E0E0F;font-family:var(--font-display);font-size:14px;font-weight:800;letter-spacing:2px;cursor:pointer;width:100%;margin-top:8px}
+.gen-submit:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── LOADING ── */
+#loading{align-items:center;justify-content:center;text-align:center;padding:48px 24px}
+.loading-icon{font-size:40px;margin-bottom:24px;animation:spin 2s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:18px;font-weight:700;margin-bottom:8px}
+.loading-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px}
+
+/* ── PROGRAM VIEW ── */
+#program{overflow-y:auto}
+.prog-header{padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;display:flex;justify-content:space-between;align-items:center}
+.prog-back{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-mono);font-size:10px;cursor:pointer;padding:8px 12px;border-radius:var(--radius)}
+.prog-save{background:var(--gold);border:none;color:#0E0E0F;font-family:var(--font-mono);font-size:10px;font-weight:700;cursor:pointer;padding:8px 14px;border-radius:var(--radius);letter-spacing:1px}
+.prog-save:disabled{opacity:.4;cursor:not-allowed}
+.prog-meta{padding:20px;border-bottom:1px solid var(--border)}
+.prog-meta-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px}
+.prog-meta-tags{display:flex;gap:8px;flex-wrap:wrap}
+.day-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:57px;background:var(--bg);z-index:9}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{flex-shrink:0;padding:12px 20px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .15s;white-space:nowrap}
+.day-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.day-content{padding:16px 20px;display:flex;flex-direction:column;gap:16px;padding-bottom:40px}
+.phase-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.phase-header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.phase-name{font-size:10px;font-weight:700;letter-spacing:3px;font-family:var(--font-mono)}
+.phase-dur{font-size:10px;color:var(--muted);font-family:var(--font-mono)}
+.ex-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ex-item:last-child{border-bottom:none}
+.ex-item:active{background:var(--surface2)}
+.ex-row{display:flex;align-items:center;gap:12px}
+.ex-n{font-size:10px;color:var(--dim);font-family:var(--font-mono);min-width:20px}
+.ex-info{flex:1}
+.ex-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.ex-meta{display:flex;gap:8px;align-items:center}
+.ex-sets{font-size:10px;font-family:var(--font-mono)}
+.ex-tool{font-size:10px;color:var(--muted);font-family:var(--font-mono)}
+.ex-chev{font-size:18px;color:var(--dim);transition:transform .15s;line-height:1}
+.ex-chev.open{transform:rotate(90deg)}
+.ex-desc{padding:10px 16px 14px 44px;font-size:11px;color:#999;line-height:1.7;font-family:var(--font-mono);display:none;border-top:1px solid var(--border)}
+.ex-desc.open{display:block}
+
+/* ── TOKEN SETUP ── */
+#token-setup{align-items:center;justify-content:center;padding:48px 24px;text-align:center}
+.token-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:400px;text-align:left}
+.token-title{font-size:20px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px}
+.token-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:20px}
+.token-steps{font-size:10px;color:var(--muted);font-family:var(--font-mono);line-height:2;margin-bottom:20px;background:var(--surface2);padding:14px;border-radius:var(--radius)}
+input[type=text],input[type=password]{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;margin-bottom:12px}
+.token-btn{width:100%;padding:14px;background:var(--gold);border:none;border-radius:var(--radius);color:#0E0E0F;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2px;cursor:pointer}
+.token-err{font-size:11px;color:var(--red);font-family:var(--font-mono);margin-top:8px;display:none}
+
+/* ── ERROR ── */
+.error-box{background:var(--red)15;border:1px solid var(--red)44;border-radius:var(--radius);padding:16px;font-size:12px;color:var(--red);font-family:var(--font-mono);margin:20px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- TOKEN SETUP -->
+<div id="token-setup" class="screen">
+  <div class="token-card">
+    <div class="token-title">Connetti GitHub</div>
+    <div class="token-sub">Il token serve per salvare il tuo profilo e lo storico dei programmi su GitHub Gist. Viene salvato solo sul tuo dispositivo.</div>
+    <div class="token-steps">
+      1. github.com → Settings<br>
+      2. Developer settings → Tokens (classic)<br>
+      3. Generate new token → spunta "gist"<br>
+      4. Copia il token e incollalo qui
+    </div>
+    <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
+    <button class="token-btn" onclick="saveToken()">CONNETTI</button>
+    <div class="token-err" id="token-err">Token non valido o errore di connessione.</div>
+  </div>
+</div>
+
+<!-- SETUP LIVELLO -->
+<div id="setup" class="screen">
+  <div class="setup-logo">CALISTHENICS · AI TRAINER</div>
+  <h1 class="setup-title">QUAL È IL<br>TUO <span>LIVELLO</span>?</h1>
+  <p class="setup-sub">USATO PER CALIBRARE I PROGRAMMI</p>
+  <div class="setup-card">
+    <div class="setup-label">LIVELLO DI ESPERIENZA</div>
+    <div class="level-grid" id="level-grid">
+      <button class="level-btn" onclick="selectLevel(1)">1<small>INIZIO</small></button>
+      <button class="level-btn" onclick="selectLevel(2)">2<small>BASE</small></button>
+      <button class="level-btn" onclick="selectLevel(3)">3<small>MEDIO</small></button>
+      <button class="level-btn" onclick="selectLevel(4)">4<small>AVANZ.</small></button>
+      <button class="level-btn" onclick="selectLevel(5)">5<small>ELITE</small></button>
+    </div>
+    <button class="setup-btn" id="setup-btn" onclick="saveProfile()" disabled>INIZIA →</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="screen">
+  <div class="home-header">
+    <div class="home-greeting" id="home-greeting">CALISTHENICS · AI TRAINER</div>
+    <div class="home-title">Ciao, <span id="home-level-badge"></span></div>
+  </div>
+  <div class="home-actions">
+    <button class="action-btn action-btn-primary" onclick="showScreen('generate')">
+      <span class="action-title">+ Nuovo programma</span>
+      <span class="action-desc">Genera un piano settimanale con AI</span>
+    </button>
+    <button class="action-btn" onclick="showScreen('generate')">
+      <span class="action-title" style="color:var(--text)">Cambia livello</span>
+      <span class="action-desc">Livello attuale: <span id="current-level-text"></span></span>
+    </button>
+  </div>
+  <div class="history-section">
+    <div class="section-label">PROGRAMMI RECENTI</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+
+<!-- GENERATE -->
+<div id="generate" class="screen">
+  <div class="gen-header">
+    <button class="back-btn" onclick="showScreen('home')">← BACK</button>
+    <div class="gen-title">Nuovo programma</div>
+  </div>
+  <div class="gen-body">
+
+    <div class="form-group">
+      <div class="form-label">GIORNI A SETTIMANA</div>
+      <div class="pills-row" id="days-pills">
+        <button class="pill-btn" style="color:var(--teal)" onclick="selectDays(2,this)">2 GIORNI</button>
+        <button class="pill-btn active" style="color:var(--teal);border-color:var(--teal)" onclick="selectDays(3,this)">3 GIORNI</button>
+        <button class="pill-btn" style="color:var(--teal)" onclick="selectDays(4,this)">4 GIORNI</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">FOCUS PER GIORNO</div>
+      <div class="day-config" id="day-config"></div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">OBIETTIVO SKILL</div>
+      <div class="pills-row" id="skill-pills">
+        <button class="pill-btn active" style="color:var(--purple);border-color:var(--purple)" onclick="selectSkill('Nessuno',this)">NESSUNO</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('Planche',this)">PLANCHE</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('Front Lever',this)">FRONT LEVER</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('Handstand',this)">HANDSTAND</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('Muscle-up',this)">MUSCLE-UP</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('L-sit',this)">L-SIT</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('Human Flag',this)">HUMAN FLAG</button>
+        <button class="pill-btn" style="color:var(--purple)" onclick="selectSkill('One Arm Pull-up',this)">ONE ARM PULL</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">MUSCOLI DA ENFATIZZARE</div>
+      <div class="pills-row" id="muscle-pills">
+        <button class="pill-btn active" style="color:var(--blue);border-color:var(--blue)" onclick="selectMuscle('Nessuno',this)">NESSUNO</button>
+        <button class="pill-btn" style="color:var(--blue)" onclick="selectMuscle('Petto',this)">PETTO</button>
+        <button class="pill-btn" style="color:var(--blue)" onclick="selectMuscle('Schiena',this)">SCHIENA</button>
+        <button class="pill-btn" style="color:var(--blue)" onclick="selectMuscle('Spalle',this)">SPALLE</button>
+        <button class="pill-btn" style="color:var(--blue)" onclick="selectMuscle('Core',this)">CORE</button>
+        <button class="pill-btn" style="color:var(--blue)" onclick="selectMuscle('Gambe',this)">GAMBE</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">ATTREZZI DISPONIBILI</div>
+      <div class="toggle-grid" id="equipment-grid">
+        <button class="toggle-btn active" onclick="toggleEquip(this,'Sbarra')">SBARRA</button>
+        <button class="toggle-btn active" onclick="toggleEquip(this,'Parallele')">PARALLELE</button>
+        <button class="toggle-btn" onclick="toggleEquip(this,'Elastici')">ELASTICI</button>
+        <button class="toggle-btn active" onclick="toggleEquip(this,'Solo terra')">SOLO TERRA</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">TEMPO DISPONIBILE</div>
+      <div class="pills-row" id="time-pills">
+        <button class="pill-btn" style="color:var(--gold)" onclick="selectTime(45,this)">45 MIN</button>
+        <button class="pill-btn active" style="color:var(--gold);border-color:var(--gold)" onclick="selectTime(60,this)">60 MIN</button>
+        <button class="pill-btn" style="color:var(--gold)" onclick="selectTime(90,this)">90 MIN</button>
+      </div>
+    </div>
+
+    <button class="gen-submit" id="gen-submit" onclick="generateProgram()">GENERA PROGRAMMA ✦</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading" class="screen">
+  <div class="loading-icon">⟳</div>
+  <div class="loading-text">L'AI sta costruendo il tuo programma</div>
+  <div class="loading-sub" id="loading-sub">Analisi dello storico...</div>
+</div>
+
+<!-- PROGRAM VIEW -->
+<div id="program" class="screen">
+  <div class="prog-header">
+    <button class="prog-back" onclick="showScreen('home')">← HOME</button>
+    <button class="prog-save" id="prog-save-btn" onclick="saveProgram()">SALVA ↑</button>
+  </div>
+  <div class="prog-meta">
+    <div class="prog-meta-title" id="prog-title">Programma</div>
+    <div class="prog-meta-tags" id="prog-tags"></div>
+  </div>
+  <div class="day-tabs" id="day-tabs"></div>
+  <div class="day-content" id="day-content"></div>
+</div>
+
+<script>
+// ── DATABASE ──
+const DB = {"esercizi":[{"id":"push_up","name":"Push-up","categoria":"spinta","tipo":"forza","muscoli":["petto","tricipiti","spalle"],"difficolta":1,"attrezzo":["terra"],"propedeutico_a":["push_up_wide","diamond_push_up","archer_push_up","pseudo_planche_push_up"],"richiede":[],"descrizione":"Mani larghezza spalle, corpo rigido. Scendi fino a petto che sfiora il suolo, spingi fino a braccia tese.","sets_default":"3 × 12-15","recupero":60,"skill_target":false,"pattern":"horizontal_push"},{"id":"push_up_wide","name":"Push-up Wide","categoria":"spinta","tipo":"forza","muscoli":["petto","tricipiti","spalle"],"difficolta":2,"attrezzo":["terra"],"propedeutico_a":["archer_push_up","dips"],"richiede":["push_up"],"descrizione":"Mani più larghe delle spalle. Negative lenta 3″, petto che sfiora il suolo. Enfatizza il petto.","sets_default":"3 × 12-15","recupero":60,"skill_target":false,"pattern":"horizontal_push"},{"id":"diamond_push_up","name":"Diamond Push-up","categoria":"spinta","tipo":"forza","muscoli":["tricipiti","petto","spalle"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":["pseudo_planche_push_up"],"richiede":["push_up"],"descrizione":"Mani a triangolo sotto il petto. Gomiti vicini al busto per isolare i tricipiti.","sets_default":"3 × 10","recupero":60,"skill_target":false,"pattern":"horizontal_push"},{"id":"archer_push_up","name":"Archer Push-up","categoria":"spinta","tipo":"forza","muscoli":["petto","tricipiti","spalle"],"difficolta":4,"attrezzo":["terra"],"propedeutico_a":["one_arm_push_up"],"richiede":["push_up_wide"],"descrizione":"Un braccio tende lateralmente mentre l'altro esegue il push-up. Progressione verso il one-arm.","sets_default":"3 × 5/lato","recupero":90,"skill_target":false,"pattern":"horizontal_push"},{"id":"pike_push_up","name":"Pike Push-up","categoria":"spinta","tipo":"forza","muscoli":["spalle","tricipiti","core"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":["pike_push_up_elevato","handstand_push_up_wall"],"richiede":["push_up"],"descrizione":"Anche alte, corpo a V rovesciata. Carico sulle spalle. Simula il movimento dell'HSPU.","sets_default":"3 × 8","recupero":75,"skill_target":false,"pattern":"vertical_push"},{"id":"pike_push_up_elevato","name":"Pike Push-up con piedi elevati","categoria":"spinta","tipo":"forza","muscoli":["spalle","tricipiti","core"],"difficolta":4,"attrezzo":["terra","struttura"],"propedeutico_a":["handstand_push_up_wall"],"richiede":["pike_push_up"],"descrizione":"Come il pike push-up ma con i piedi su una struttura rialzata. Aumenta il carico sulle spalle.","sets_default":"3 × 6-8","recupero":90,"skill_target":false,"pattern":"vertical_push"},{"id":"pseudo_planche_push_up","name":"Pseudo Planche Push-up","categoria":"spinta","tipo":"mix","muscoli":["petto","spalle","core","tricipiti"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":["planche_push_up"],"richiede":["diamond_push_up","planche_lean"],"descrizione":"Mani ruotate verso i piedi, spalle avanti rispetto ai polsi. Attiva il pettorale basso e le spalle anteriori.","sets_default":"3 × 8","recupero":90,"skill_target":false,"pattern":"horizontal_push"},{"id":"one_arm_push_up","name":"One Arm Push-up","categoria":"spinta","tipo":"forza","muscoli":["petto","tricipiti","spalle","core","avambracci"],"difficolta":5,"attrezzo":["terra"],"propedeutico_a":[],"richiede":["archer_push_up"],"descrizione":"Push-up su un solo braccio, piedi larghi per bilanciamento. Corpo rigido, niente rotazione del busto.","sets_default":"3 × 3-5/lato","recupero":120,"skill_target":true,"pattern":"horizontal_push"},{"id":"dips","name":"Dips","categoria":"spinta","tipo":"mix","muscoli":["petto","tricipiti","spalle"],"difficolta":2,"attrezzo":["parallele alte"],"propedeutico_a":["russian_dips","korean_dips"],"richiede":["push_up"],"descrizione":"Corpo verticale per tricipiti, inclinato avanti per petto. Scendi fino a 90° di gomito, spingi fino a braccia tese.","sets_default":"4 × 8-10","recupero":90,"skill_target":false,"pattern":"horizontal_push"},{"id":"russian_dips","name":"Russian Dips","categoria":"spinta","tipo":"forza","muscoli":["tricipiti","petto","spalle"],"difficolta":4,"attrezzo":["parallele alte"],"propedeutico_a":["muscle_up"],"richiede":["dips"],"descrizione":"Dips con transizione sugli avambracci alle parallele e ritorno. Allena la transizione del muscle-up.","sets_default":"3 × 5","recupero":120,"skill_target":false,"pattern":"horizontal_push"},{"id":"korean_dips","name":"Korean Dips","categoria":"spinta","tipo":"forza","muscoli":["spalle","tricipiti","petto"],"difficolta":4,"attrezzo":["parallele basse","sbarra"],"propedeutico_a":["tuck_back_lever","straddle_back_lever"],"richiede":["dips"],"descrizione":"Mani dietro il corpo su sbarra bassa, presa prona. Scendi flettendo i gomiti. Spalle in massima estensione.","sets_default":"3 × 5-6","recupero":120,"skill_target":false,"pattern":"horizontal_push"},{"id":"handstand_push_up_wall","name":"Handstand Push-up (muro)","categoria":"spinta","tipo":"forza","muscoli":["spalle","tricipiti","core"],"difficolta":4,"attrezzo":["muro"],"propedeutico_a":["handstand_hold","handstand_push_up_free"],"richiede":["pike_push_up_elevato","wall_handstand"],"descrizione":"Verticale contro il muro, scendi piegando i gomiti fino a testa che sfiora il suolo, spingi su.","sets_default":"3 × 4-6","recupero":120,"skill_target":false,"pattern":"vertical_push"},{"id":"planche_lean","name":"Planche Lean","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","petto","core","tricipiti"],"difficolta":3,"attrezzo":["terra","parallele basse"],"propedeutico_a":["tuck_planche"],"richiede":["push_up"],"descrizione":"Posizione di push-up con spalle molto avanti rispetto alle mani. Isometrica. Costruisce la forza base per la planche.","sets_default":"4 × 10-15″","recupero":75,"skill_target":false,"pattern":"isometric_push"},{"id":"tuck_planche","name":"Tuck Planche Hold","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","petto","core","tricipiti","avambracci"],"difficolta":3,"attrezzo":["terra","parallele basse"],"propedeutico_a":["advanced_tuck_planche","pseudo_planche_push_up"],"richiede":["planche_lean"],"descrizione":"Spalle avanti rispetto ai polsi, gambe raccolte al petto, corpo sollevato. Protrazione scapolare massima.","sets_default":"4 × 8-12″","recupero":90,"skill_target":false,"pattern":"isometric_push"},{"id":"advanced_tuck_planche","name":"Advanced Tuck Planche","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","petto","core","tricipiti"],"difficolta":5,"attrezzo":["terra","parallele basse"],"propedeutico_a":["straddle_planche"],"richiede":["tuck_planche"],"descrizione":"Come il tuck planche ma con la schiena piatta e le gambe parallele al suolo. Transizione verso la straddle planche.","sets_default":"4 × 6-10″","recupero":120,"skill_target":false,"pattern":"isometric_push"},{"id":"straddle_planche","name":"Straddle Planche","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","petto","core","tricipiti"],"difficolta":5,"attrezzo":["terra","parallele basse"],"propedeutico_a":["full_planche","planche_push_up"],"richiede":["advanced_tuck_planche"],"descrizione":"Corpo parallelo al suolo con gambe aperte lateralmente. Protrazione scapolare totale, braccia tese.","sets_default":"4 × 5-8″","recupero":120,"skill_target":false,"pattern":"isometric_push"},{"id":"support_hold","name":"Support Hold","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","tricipiti","core"],"difficolta":2,"attrezzo":["parallele alte"],"propedeutico_a":["dips","tuck_planche","l_sit"],"richiede":[],"descrizione":"Braccia tese, corpo sollevato sulle parallele, spalle depresse. Allena la stabilità del cingolo scapolare.","sets_default":"3 × 20-30″","recupero":60,"skill_target":false,"pattern":"isometric_push"},{"id":"australian_row","name":"Australian Row","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","spalle","core"],"difficolta":2,"attrezzo":["sbarra bassa"],"propedeutico_a":["pull_up","front_lever"],"richiede":[],"descrizione":"Corpo inclinato sotto la sbarra, presa prona. Tira il petto alla sbarra. Piedi elevati per più difficoltà.","sets_default":"3 × 12","recupero":60,"skill_target":false,"pattern":"horizontal_pull"},{"id":"scapular_pull_up","name":"Scapular Pull-up","categoria":"tirata","tipo":"mix","muscoli":["dorsali","spalle","avambracci"],"difficolta":1,"attrezzo":["sbarra"],"propedeutico_a":["pull_up","front_lever"],"richiede":[],"descrizione":"Appeso a braccia tese, muovi solo le scapole verso il basso senza piegare i gomiti. Attiva il gran dorsale puro.","sets_default":"3 × 10-12","recupero":60,"skill_target":false,"pattern":"vertical_pull"},{"id":"pull_up","name":"Pull-up","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","core","spalle","avambracci"],"difficolta":3,"attrezzo":["sbarra"],"propedeutico_a":["chin_up","archer_pull_up","commando_pull_up","front_lever","muscle_up"],"richiede":["australian_row","scapular_pull_up"],"descrizione":"Presa prona larga. Dead hang pieno, trazioni fino a mento sopra la sbarra. Niente kipping.","sets_default":"4 × 6-8","recupero":90,"skill_target":false,"pattern":"vertical_pull"},{"id":"chin_up","name":"Chin-up","categoria":"tirata","tipo":"forza","muscoli":["bicipiti","dorsali","core","avambracci"],"difficolta":2,"attrezzo":["sbarra"],"propedeutico_a":["archer_pull_up","one_arm_pull_up"],"richiede":["pull_up"],"descrizione":"Presa supina stretta. Picco di contrazione in alto, gomiti vicini al busto. Enfatizza i bicipiti.","sets_default":"3 × 6-8","recupero":90,"skill_target":false,"pattern":"vertical_pull"},{"id":"commando_pull_up","name":"Commando Pull-up","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","core","spalle"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["archer_pull_up"],"richiede":["pull_up"],"descrizione":"Presa alternata (una mano prona, una supina), tira portando la testa a un lato della sbarra. Alterna ogni rep.","sets_default":"3 × 5/lato","recupero":90,"skill_target":false,"pattern":"vertical_pull"},{"id":"archer_pull_up","name":"Archer Pull-up","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","spalle","core","avambracci"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":["assisted_one_arm_pull_up","one_arm_pull_up"],"richiede":["pull_up","chin_up"],"descrizione":"Un braccio tende lateralmente mentre l'altro tira. Progressione diretta verso il one-arm pull-up.","sets_default":"3 × 4/lato","recupero":120,"skill_target":false,"pattern":"vertical_pull"},{"id":"one_arm_pull_up","name":"One Arm Pull-up","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","core","spalle","avambracci"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":[],"richiede":["archer_pull_up"],"descrizione":"Trazione su un solo braccio. L'altro braccio libero o appoggiato al polso per assistenza iniziale.","sets_default":"3 × 2-4/lato","recupero":180,"skill_target":true,"pattern":"vertical_pull"},{"id":"muscle_up","name":"Muscle-up","categoria":"mix","tipo":"esplosiva","muscoli":["dorsali","petto","tricipiti","bicipiti","spalle","core"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":["muscle_up_strict"],"richiede":["pull_up","dips","russian_dips","explosive_pull_up"],"descrizione":"Tira esplosivo, nella transizione porta i gomiti sopra la sbarra, spingi fino a braccia tese. Con elastico se necessario.","sets_default":"3 × 4-5","recupero":120,"skill_target":false,"pattern":"mix"},{"id":"muscle_up_strict","name":"Muscle-up Strict","categoria":"mix","tipo":"forza","muscoli":["dorsali","petto","tricipiti","bicipiti","spalle","core"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":[],"richiede":["muscle_up"],"descrizione":"Muscle-up senza impulso delle gambe. Trazione lenta e controllata fino alla transizione e spinta finale.","sets_default":"3 × 3","recupero":180,"skill_target":true,"pattern":"mix"},{"id":"muscle_up_negativa","name":"Muscle-up Negativa","categoria":"mix","tipo":"eccentrica","muscoli":["dorsali","petto","tricipiti","spalle","core"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["muscle_up"],"richiede":["pull_up","dips"],"descrizione":"Parti dalla posizione alta, scendi lentamente attraverso la transizione fino al dead hang. Solo eccentrica.","sets_default":"3 × 3-4","recupero":120,"skill_target":false,"pattern":"mix"},{"id":"tuck_front_lever","name":"Tuck Front Lever Hold","categoria":"tirata","tipo":"isometrica","muscoli":["dorsali","core","spalle","bicipiti"],"difficolta":2,"attrezzo":["sbarra"],"propedeutico_a":["advanced_tuck_front_lever","tuck_front_lever_raise"],"richiede":["pull_up","scapular_pull_up"],"descrizione":"Appeso, gambe raccolte al petto, corpo parallelo al suolo. Braccia tese, spalle in retrazione.","sets_default":"4 × 8-12″","recupero":90,"skill_target":false,"pattern":"horizontal_pull"},{"id":"tuck_front_lever_raise","name":"Tuck Front Lever Raise","categoria":"tirata","tipo":"forza","muscoli":["dorsali","core","spalle","bicipiti"],"difficolta":3,"attrezzo":["sbarra"],"propedeutico_a":["one_leg_front_lever"],"richiede":["tuck_front_lever"],"descrizione":"Da dead hang, solleva il corpo in posizione tuck front lever in modo controllato. 5 ripetizioni lente.","sets_default":"3 × 5","recupero":90,"skill_target":false,"pattern":"horizontal_pull"},{"id":"one_leg_front_lever","name":"One Leg Front Lever","categoria":"tirata","tipo":"isometrica","muscoli":["dorsali","core","spalle","bicipiti"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["straddle_front_lever"],"richiede":["tuck_front_lever"],"descrizione":"Front lever con una gamba tesa e una raccolta. Transizione verso il full front lever.","sets_default":"4 × 6-10″","recupero":120,"skill_target":false,"pattern":"horizontal_pull"},{"id":"straddle_front_lever","name":"Straddle Front Lever","categoria":"tirata","tipo":"isometrica","muscoli":["dorsali","core","spalle"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":["full_front_lever"],"richiede":["one_leg_front_lever"],"descrizione":"Front lever con gambe aperte lateralmente. Più vicino al full, richiede grande forza dorsale.","sets_default":"3 × 5-8″","recupero":120,"skill_target":false,"pattern":"horizontal_pull"},{"id":"full_front_lever","name":"Full Front Lever","categoria":"tirata","tipo":"isometrica","muscoli":["dorsali","core","spalle","bicipiti","avambracci"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":[],"richiede":["straddle_front_lever"],"descrizione":"Corpo completamente parallelo al suolo, braccia tese, gambe unite. Skill di forza dorsale assoluta.","sets_default":"4 × 3-6″","recupero":180,"skill_target":true,"pattern":"horizontal_pull"},{"id":"tuck_back_lever","name":"Tuck Back Lever","categoria":"tirata","tipo":"isometrica","muscoli":["spalle","petto","bicipiti","core"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["straddle_back_lever","korean_dips"],"richiede":["pull_up"],"descrizione":"Corpo sotto la sbarra, gambe raccolte, rotazione indietro fino a corpo parallelo. Spalle in massima apertura.","sets_default":"3 × 8-12″","recupero":90,"skill_target":false,"pattern":"horizontal_pull"},{"id":"straddle_back_lever","name":"Straddle Back Lever","categoria":"tirata","tipo":"isometrica","muscoli":["spalle","petto","bicipiti","core"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["full_back_lever"],"richiede":["tuck_back_lever"],"descrizione":"Back lever con gambe aperte lateralmente. Transizione verso il full back lever.","sets_default":"3 × 5-8″","recupero":120,"skill_target":false,"pattern":"horizontal_pull"},{"id":"dead_hang","name":"Dead Hang","categoria":"tirata","tipo":"isometrica","muscoli":["avambracci","spalle","dorsali"],"difficolta":2,"attrezzo":["sbarra"],"propedeutico_a":["pull_up","tuck_front_lever"],"richiede":[],"descrizione":"Appeso con presa attiva, scapole depresse, core contratto. Decomprime la colonna, rinforza grip e spalle.","sets_default":"2 × max","recupero":60,"skill_target":false,"pattern":"vertical_pull"},{"id":"handstand_hold","name":"Freestanding Handstand Hold","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","core","tricipiti","avambracci"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":["handstand_push_up_free"],"richiede":["wall_handstand","pike_push_up_elevato"],"descrizione":"Verticale libera senza appoggi. Allineamento talloni-glutei-spalle-polsi. Dita attive per bilanciamento.","sets_default":"4 × max hold","recupero":90,"skill_target":false,"pattern":"vertical_push"},{"id":"wall_handstand","name":"Wall Handstand Hold","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","core","tricipiti"],"difficolta":3,"attrezzo":["muro"],"propedeutico_a":["handstand_hold","handstand_push_up_wall"],"richiede":["pike_push_up"],"descrizione":"Verticale contro il muro (pancia o schiena). Focus sull'allineamento e sulla pressione attiva delle mani.","sets_default":"4 × 20-30″","recupero":75,"skill_target":false,"pattern":"vertical_push"},{"id":"l_sit","name":"L-sit","categoria":"core","tipo":"isometrica","muscoli":["core","spalle","tricipiti","quadricipiti","flessori anca"],"difficolta":3,"attrezzo":["parallele basse","terra"],"propedeutico_a":["one_leg_l_sit","straddle_l_sit","v_sit"],"richiede":["support_hold","pike_hold"],"descrizione":"Braccia tese, spalle depresse, gambe tese e parallele al suolo. Inizia con una gamba sola se necessario.","sets_default":"4 × max hold","recupero":90,"skill_target":false,"pattern":"core"},{"id":"v_sit","name":"V-sit","categoria":"core","tipo":"isometrica","muscoli":["core","spalle","tricipiti","quadricipiti","flessori anca"],"difficolta":4,"attrezzo":["parallele basse","terra"],"propedeutico_a":[],"richiede":["l_sit"],"descrizione":"Come l'L-sit ma con il busto inclinato indietro e le gambe più alte. Richiede grande compressione dell'anca.","sets_default":"3 × 5-8″","recupero":120,"skill_target":false,"pattern":"core"},{"id":"pike_hold","name":"Pike Hold compresso","categoria":"core","tipo":"isometrica","muscoli":["core","flessori anca","quadricipiti"],"difficolta":1,"attrezzo":["terra","parallele basse"],"propedeutico_a":["l_sit","v_sit"],"richiede":[],"descrizione":"Seduto con gambe tese, comprimi il busto sulle cosce. Allena la flessione dell'anca per L-sit e V-sit.","sets_default":"3 × 20-30″","recupero":45,"skill_target":false,"pattern":"core"},{"id":"hollow_body","name":"Hollow Body Hold","categoria":"core","tipo":"isometrica","muscoli":["core","spalle","glutei","quadricipiti"],"difficolta":1,"attrezzo":["terra"],"propedeutico_a":["l_sit","tuck_planche","handstand_hold"],"richiede":[],"descrizione":"Schiena piatta, lombare incollata al suolo, braccia e gambe sollevate e tese. Base per handstand e planche.","sets_default":"3 × 25-30″","recupero":45,"skill_target":false,"pattern":"core"},{"id":"arch_body","name":"Arch Body Hold","categoria":"core","tipo":"isometrica","muscoli":["lombari","glutei","spalle","femorali"],"difficolta":1,"attrezzo":["terra"],"propedeutico_a":["tuck_back_lever","full_back_lever"],"richiede":[],"descrizione":"A pancia in giù, solleva braccia e gambe tese contemporaneamente. Opposto al hollow, rinforza i lombari.","sets_default":"3 × 20-25″","recupero":45,"skill_target":false,"pattern":"core"},{"id":"hanging_leg_raise","name":"Hanging Leg Raise","categoria":"core","tipo":"forza","muscoli":["core","flessori anca","dorsali","avambracci"],"difficolta":2,"attrezzo":["sbarra"],"propedeutico_a":["toes_to_bar","windshield_wiper","tuck_front_lever"],"richiede":["dead_hang"],"descrizione":"Appeso, solleva le gambe tese fino all'orizzontale o oltre. Niente swing, discesa controllata.","sets_default":"4 × 10-12","recupero":75,"skill_target":false,"pattern":"core"},{"id":"toes_to_bar","name":"Toes to Bar","categoria":"core","tipo":"forza","muscoli":["core","flessori anca","dorsali"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["windshield_wiper"],"richiede":["hanging_leg_raise"],"descrizione":"Da dead hang, porta i piedi a toccare la sbarra con gambe tese. Movimento controllato, no oscillazione.","sets_default":"3 × 8","recupero":75,"skill_target":false,"pattern":"core"},{"id":"windshield_wiper","name":"Windshield Wiper","categoria":"core","tipo":"forza","muscoli":["obliqui","core","dorsali","avambracci"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":[],"richiede":["toes_to_bar"],"descrizione":"Appeso, gambe tese a 90°. Ruota le gambe da un lato all'altro. Obliqui intensi.","sets_default":"3 × 6/lato","recupero":90,"skill_target":false,"pattern":"core"},{"id":"dragon_flag_tuck","name":"Tuck Dragon Flag","categoria":"core","tipo":"mix","muscoli":["core","lombari","spalle","glutei"],"difficolta":3,"attrezzo":["panchina","struttura"],"propedeutico_a":["dragon_flag"],"richiede":["hollow_body","hanging_leg_raise"],"descrizione":"Tieni la struttura sopra la testa, gambe raccolte al petto. Abbassati lentamente mantenendo il controllo.","sets_default":"3 × 5","recupero":90,"skill_target":false,"pattern":"core"},{"id":"dragon_flag","name":"Dragon Flag","categoria":"core","tipo":"mix","muscoli":["core","lombari","spalle","quadricipiti","glutei"],"difficolta":4,"attrezzo":["panchina","struttura"],"propedeutico_a":[],"richiede":["dragon_flag_tuck"],"descrizione":"Corpo rigido come un'asse, solo le spalle a terra. Abbassati lentamente da verticale a orizzontale.","sets_default":"3 × 4-5","recupero":120,"skill_target":false,"pattern":"core"},{"id":"side_plank","name":"Side Plank","categoria":"core","tipo":"isometrica","muscoli":["obliqui","core","spalle","glutei"],"difficolta":1,"attrezzo":["terra"],"propedeutico_a":["copenhagen_plank","human_flag"],"richiede":[],"descrizione":"Appoggio su un avambraccio o mano, corpo laterale rigido. Fianchi sollevati, linea retta dalla testa ai piedi.","sets_default":"3 × 20-30″/lato","recupero":45,"skill_target":false,"pattern":"core"},{"id":"copenhagen_plank","name":"Copenhagen Plank","categoria":"core","tipo":"isometrica","muscoli":["obliqui","adduttori","core","spalle","glutei"],"difficolta":3,"attrezzo":["struttura","panchina"],"propedeutico_a":["human_flag"],"richiede":["side_plank"],"descrizione":"Plank laterale con il piede superiore appoggiato sul rialzo e quello inferiore sollevato. Core laterale intenso.","sets_default":"3 × 20″/lato","recupero":75,"skill_target":false,"pattern":"core"},{"id":"push_up_side_plank","name":"Push-up to Side Plank","categoria":"mix","tipo":"mix","muscoli":["petto","tricipiti","obliqui","core","spalle"],"difficolta":2,"attrezzo":["terra"],"propedeutico_a":[],"richiede":["push_up","side_plank"],"descrizione":"Esegui un push-up, in cima ruota il corpo di 90° aprendo un braccio verso il cielo. Alterna i lati.","sets_default":"3 × 6/lato","recupero":60,"skill_target":false,"pattern":"core"},{"id":"human_flag_tuck","name":"Tuck Human Flag","categoria":"mix","tipo":"isometrica","muscoli":["obliqui","core","spalle","dorsali","bicipiti","tricipiti"],"difficolta":4,"attrezzo":["palo verticale","struttura"],"propedeutico_a":["human_flag"],"richiede":["side_plank","copenhagen_plank","pull_up"],"descrizione":"Corpo laterale al palo, gambe raccolte al petto. Spinge con un braccio, tira con l'altro per mantenersi orizzontale.","sets_default":"3 × 5-8″/lato","recupero":120,"skill_target":false,"pattern":"mix"},{"id":"pistol_squat_assistito","name":"Pistol Squat assistito","categoria":"gambe","tipo":"forza","muscoli":["quadricipiti","glutei","core"],"difficolta":2,"attrezzo":["struttura"],"propedeutico_a":["pistol_squat"],"richiede":["squat"],"descrizione":"Un piede a terra, l'altro teso in avanti. Tieni la struttura per bilanciarti. Scendi fino a coscia parallela.","sets_default":"3 × 5/gamba","recupero":75,"skill_target":false,"pattern":"squat"},{"id":"pistol_squat","name":"Pistol Squat","categoria":"gambe","tipo":"forza","muscoli":["quadricipiti","glutei","core","flessori anca","femorali","polpacci"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":[],"richiede":["pistol_squat_assistito"],"descrizione":"Squat su una gamba sola libero. Gamba libera tesa in avanti, scendi controllato fino in fondo, risali.","sets_default":"3 × 4-5/gamba","recupero":90,"skill_target":false,"pattern":"squat"},{"id":"squat","name":"Squat","categoria":"gambe","tipo":"forza","muscoli":["quadricipiti","glutei","core"],"difficolta":1,"attrezzo":["terra"],"propedeutico_a":["pistol_squat_assistito","bulgarian_split_squat","jump_squat"],"richiede":[],"descrizione":"Piedi larghezza spalle, scendi con la schiena dritta fino a coscia parallela al suolo. Talloni a terra.","sets_default":"3 × 15","recupero":60,"skill_target":false,"pattern":"squat"},{"id":"jump_squat","name":"Jump Squat","categoria":"gambe","tipo":"esplosiva","muscoli":["quadricipiti","glutei","polpacci"],"difficolta":2,"attrezzo":["terra"],"propedeutico_a":["step_up_esplosivo"],"richiede":["squat"],"descrizione":"Squat con salto esplosivo in cima. Atterraggio morbido con ginocchia ammortizzate.","sets_default":"3 × 10","recupero":75,"skill_target":false,"pattern":"squat"},{"id":"bulgarian_split_squat","name":"Bulgarian Split Squat","categoria":"gambe","tipo":"forza","muscoli":["quadricipiti","glutei","core"],"difficolta":3,"attrezzo":["struttura","panchina"],"propedeutico_a":["pistol_squat_assistito"],"richiede":["squat"],"descrizione":"Piede posteriore elevato su struttura, piede anteriore avanti. Scendi fino a ginocchio posteriore vicino al suolo.","sets_default":"3 × 8/gamba","recupero":75,"skill_target":false,"pattern":"squat"},{"id":"step_up_esplosivo","name":"Step-up esplosivo","categoria":"gambe","tipo":"esplosiva","muscoli":["quadricipiti","glutei","polpacci"],"difficolta":2,"attrezzo":["struttura","panchina"],"propedeutico_a":["pistol_squat"],"richiede":["squat"],"descrizione":"Sali sul rialzo con una gamba sola in modo esplosivo, alternando. Allena potenza e forza unilaterale.","sets_default":"3 × 10/gamba","recupero":60,"skill_target":false,"pattern":"squat"},{"id":"nordic_curl","name":"Nordic Curl negativa","categoria":"gambe","tipo":"eccentrica","muscoli":["femorali","glutei","core"],"difficolta":3,"attrezzo":["sbarra bassa","struttura"],"propedeutico_a":["nordic_curl_assistito"],"richiede":[],"descrizione":"Ginocchia a terra, piedi bloccati. Abbassati lentamente in avanti mantenendo il corpo rigido. Solo eccentrica 5-6″.","sets_default":"3 × 4-5","recupero":90,"skill_target":false,"pattern":"hinge"},{"id":"glute_bridge","name":"Glute Bridge","categoria":"gambe","tipo":"forza","muscoli":["glutei","femorali","core"],"difficolta":2,"attrezzo":["terra"],"propedeutico_a":["single_leg_glute_bridge","nordic_curl"],"richiede":[],"descrizione":"Schiena a terra, ginocchia piegate. Solleva il bacino contraendo i glutei. Tieni 1-2″ in cima.","sets_default":"3 × 15","recupero":45,"skill_target":false,"pattern":"hinge"},{"id":"single_leg_glute_bridge","name":"Single Leg Glute Bridge","categoria":"gambe","tipo":"forza","muscoli":["glutei","femorali","core"],"difficolta":3,"attrezzo":["terra"],"propedeutico_a":["pistol_squat_assistito"],"richiede":["glute_bridge"],"descrizione":"Come il glute bridge ma su una gamba sola, l'altra tesa in aria. Più intenso sul gluteo e core.","sets_default":"3 × 10/gamba","recupero":60,"skill_target":false,"pattern":"hinge"},{"id":"calf_raise","name":"Calf Raise","categoria":"gambe","tipo":"forza","muscoli":["polpacci"],"difficolta":1,"attrezzo":["terra","struttura"],"propedeutico_a":["single_leg_calf_raise"],"richiede":[],"descrizione":"In piedi, solleva i talloni contraendo i polpacci. Bipodalico → monopodalico per aumentare difficoltà.","sets_default":"3 × 20","recupero":45,"skill_target":false,"pattern":"hinge"},{"id":"single_leg_calf_raise","name":"Single Leg Calf Raise","categoria":"gambe","tipo":"forza","muscoli":["polpacci"],"difficolta":2,"attrezzo":["terra","struttura"],"propedeutico_a":[],"richiede":["calf_raise"],"descrizione":"Calf raise su una gamba sola. Tieni la struttura per bilanciarti. ROM completo.","sets_default":"3 × 15/gamba","recupero":45,"skill_target":false,"pattern":"hinge"},{"id":"advanced_tuck_front_lever","name":"Advanced Tuck Front Lever","categoria":"tirata","tipo":"isometrica","muscoli":["dorsali","core","spalle","bicipiti"],"difficolta":3,"attrezzo":["sbarra"],"propedeutico_a":["one_leg_front_lever"],"richiede":["tuck_front_lever"],"descrizione":"Come il tuck front lever ma con la schiena piatta e le gambe più estese. Transizione verso il one leg front lever.","sets_default":"4 × 6-10″","recupero":90,"skill_target":false,"pattern":"horizontal_pull"},{"id":"full_planche","name":"Full Planche","categoria":"spinta","tipo":"isometrica","muscoli":["spalle","petto","core","tricipiti","avambracci"],"difficolta":5,"attrezzo":["terra","parallele basse"],"propedeutico_a":[],"richiede":["straddle_planche"],"descrizione":"Corpo completamente parallelo al suolo, braccia tese, gambe unite. Skill di spinta assoluta.","sets_default":"4 × 3-5″","recupero":180,"skill_target":true,"pattern":"isometric_push"},{"id":"full_back_lever","name":"Full Back Lever","categoria":"tirata","tipo":"isometrica","muscoli":["spalle","petto","bicipiti","core"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":[],"richiede":["straddle_back_lever"],"descrizione":"Corpo completamente parallelo al suolo sotto la sbarra, gambe unite, braccia tese. Massima apertura delle spalle.","sets_default":"3 × 3-5″","recupero":180,"skill_target":true,"pattern":"horizontal_pull"},{"id":"human_flag","name":"Human Flag","categoria":"mix","tipo":"isometrica","muscoli":["obliqui","core","spalle","dorsali","bicipiti","tricipiti"],"difficolta":5,"attrezzo":["palo verticale","struttura"],"propedeutico_a":[],"richiede":["human_flag_tuck"],"descrizione":"Corpo laterale e orizzontale al palo, completamente teso. Spinge con un braccio, tira con l'altro.","sets_default":"3 × 3-5″/lato","recupero":180,"skill_target":true,"pattern":"mix"},{"id":"handstand_push_up_free","name":"Freestanding Handstand Push-up","categoria":"spinta","tipo":"forza","muscoli":["spalle","tricipiti","core","avambracci"],"difficolta":5,"attrezzo":["terra"],"propedeutico_a":[],"richiede":["handstand_hold","handstand_push_up_wall"],"descrizione":"HSPU in verticale libera senza appoggi. Richiede pieno controllo del bilanciamento durante il movimento.","sets_default":"3 × 2-4","recupero":180,"skill_target":true,"pattern":"vertical_push"},{"id":"explosive_pull_up","name":"Explosive Pull-up","categoria":"tirata","tipo":"esplosiva","muscoli":["dorsali","bicipiti","spalle","core","avambracci"],"difficolta":4,"attrezzo":["sbarra"],"propedeutico_a":["muscle_up"],"richiede":["pull_up"],"descrizione":"Pull-up esplosivo con massima accelerazione. Obiettivo: portare il petto alla sbarra. Propedeutico al muscle-up.","sets_default":"4 × 4-5","recupero":120,"skill_target":false,"pattern":"vertical_pull"},{"id":"assisted_one_arm_pull_up","name":"Assisted One Arm Pull-up","categoria":"tirata","tipo":"forza","muscoli":["dorsali","bicipiti","core","spalle","avambracci"],"difficolta":4,"attrezzo":["sbarra","elastico"],"propedeutico_a":["negative_one_arm_pull_up"],"richiede":["archer_pull_up"],"descrizione":"Trazione su un braccio con assistenza dell'elastico o della mano libera sul polso. Progressione verso il one-arm.","sets_default":"3 × 3-4/lato","recupero":150,"skill_target":false,"pattern":"vertical_pull"},{"id":"negative_one_arm_pull_up","name":"Negative One Arm Pull-up","categoria":"tirata","tipo":"eccentrica","muscoli":["dorsali","bicipiti","core","spalle","avambracci"],"difficolta":5,"attrezzo":["sbarra"],"propedeutico_a":["one_arm_pull_up"],"richiede":["assisted_one_arm_pull_up"],"descrizione":"Parti dalla posizione alta su un braccio solo, scendi lentamente fino al dead hang. Solo eccentrica.","sets_default":"3 × 2-3/lato","recupero":180,"skill_target":false,"pattern":"vertical_pull"},{"id":"planche_push_up","name":"Planche Push-up","categoria":"spinta","tipo":"mix","muscoli":["spalle","petto","core","tricipiti","avambracci"],"difficolta":5,"attrezzo":["terra","parallele basse"],"propedeutico_a":[],"richiede":["pseudo_planche_push_up","straddle_planche"],"descrizione":"Push-up in posizione di planche. Richiede di mantenere il corpo parallelo al suolo durante tutto il movimento.","sets_default":"3 × 2-4","recupero":180,"skill_target":true,"pattern":"isometric_push"}]};
+const EXERCISES = {};
+DB.esercizi.forEach(e => EXERCISES[e.id] = e);
+
+// ── STATE ──
+let profile = null;
+let history = [];
+let githubToken = null;
+let gistId = null;
+let currentProgram = null;
+let currentDayIndex = 0;
+let formState = {
+  days: 3,
+  dayFocus: ['Spinta','Tirata','Mix'],
+  skill: 'Nessuno',
+  muscle: 'Nessuno',
+  equipment: ['Sbarra','Parallele','Solo terra'],
+  time: 60
+};
+
+// ── GIST ──
+const GIST_FILENAME = 'calisthenics_data.json';
+
+async function loadFromGist() {
+  if (!githubToken) return null;
+  try {
+    const r = await fetch('https://api.github.com/gists', {
+      headers: { Authorization: 'token ' + githubToken, Accept: 'application/vnd.github.v3+json' }
+    });
+    const gists = await r.json();
+    const found = gists.find(g => g.files && g.files[GIST_FILENAME]);
+    if (!found) return null;
+    gistId = found.id;
+    const detail = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { Authorization: 'token ' + githubToken }
+    });
+    const data = await detail.json();
+    return JSON.parse(data.files[GIST_FILENAME].content);
+  } catch(e) { return null; }
+}
+
+async function saveToGist(data) {
+  if (!githubToken) return;
+  const content = JSON.stringify(data, null, 2);
+  try {
+    if (gistId) {
+      await fetch('https://api.github.com/gists/' + gistId, {
+        method: 'PATCH',
+        headers: { Authorization: 'token ' + githubToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [GIST_FILENAME]: { content } } })
+      });
+    } else {
+      const r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: 'token ' + githubToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'Calisthenics AI Data', public: false, files: { [GIST_FILENAME]: { content } } })
+      });
+      const g = await r.json();
+      gistId = g.id;
+    }
+  } catch(e) { console.error('Gist save error', e); }
+}
+
+// ── INIT ──
+async function init() {
+  githubToken = localStorage.getItem('gh_token');
+  if (!githubToken) { showScreen('token-setup'); return; }
+  showScreen('loading');
+  document.getElementById('loading-sub').textContent = 'Caricamento dati...';
+  const data = await loadFromGist();
+  if (data) {
+    profile = data.profile;
+    history = data.history || [];
+  } else {
+    profile = null;
+    history = [];
+  }
+  if (!profile) { showScreen('setup'); return; }
+  renderHome();
+  showScreen('home');
+}
+
+// ── TOKEN ──
+async function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) return;
+  const err = document.getElementById('token-err');
+  try {
+    const r = await fetch('https://api.github.com/user', {
+      headers: { Authorization: 'token ' + t }
+    });
+    if (!r.ok) throw new Error();
+    localStorage.setItem('gh_token', t);
+    githubToken = t;
+    err.style.display = 'none';
+    const data = await loadFromGist();
+    if (data) { profile = data.profile; history = data.history || []; }
+    if (!profile) { showScreen('setup'); } else { renderHome(); showScreen('home'); }
+  } catch(e) {
+    err.style.display = 'block';
+  }
+}
+
+// ── SETUP ──
+let selectedLevel = null;
+function selectLevel(n) {
+  selectedLevel = n;
+  document.querySelectorAll('.level-btn').forEach((b,i) => {
+    b.classList.toggle('active', i+1 === n);
+  });
+  document.getElementById('setup-btn').disabled = false;
+}
+async function saveProfile() {
+  if (!selectedLevel) return;
+  profile = { level: selectedLevel, created: new Date().toISOString() };
+  await saveToGist({ profile, history });
+  renderHome();
+  showScreen('home');
+}
+
+// ── HOME ──
+function renderHome() {
+  const lvlNames = ['','Principiante','Base','Intermedio','Avanzato','Elite'];
+  document.getElementById('home-level-badge').textContent = 'Livello ' + profile.level;
+  document.getElementById('current-level-text').textContent = lvlNames[profile.level];
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = '<div class="empty-history">Nessun programma salvato ancora.</div>';
+    return;
+  }
+  el.innerHTML = history.slice().reverse().slice(0,5).map((p,i) => {
+    const date = new Date(p.savedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+    const days = p.giorni.length;
+    const skillTag = p.inputs.skill !== 'Nessuno' ? `<span class="tag tag-skill">${p.inputs.skill.toUpperCase()}</span>` : '';
+    const focuses = p.giorni.map(g => `<span class="tag tag-focus">${g.focus.substring(0,4).toUpperCase()}</span>`).join('');
+    return `<div class="history-card" onclick="viewHistoryProgram(${history.length-1-i})">
+      <div class="history-top">
+        <span class="history-date">${date}</span>
+        <span class="history-days">${days} GIORNI · ${p.inputs.time} MIN</span>
+      </div>
+      <div class="history-tags">${focuses}${skillTag}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── GENERATE FORM ──
+function selectDays(n, btn) {
+  formState.days = n;
+  document.querySelectorAll('#days-pills .pill-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.borderColor = '';
+  });
+  btn.classList.add('active');
+  btn.style.borderColor = 'var(--teal)';
+  // aggiusta dayFocus
+  const focusOptions = ['Spinta','Tirata','Mix','Gambe','Full Body'];
+  while (formState.dayFocus.length < n) formState.dayFocus.push('Mix');
+  formState.dayFocus = formState.dayFocus.slice(0, n);
+  renderDayConfig();
+}
+function renderDayConfig() {
+  const container = document.getElementById('day-config');
+  const focuses = ['Spinta','Tirata','Mix','Gambe','Full Body'];
+  const muscles = ['Nessuno','Petto','Schiena','Spalle','Core','Gambe'];
+  container.innerHTML = Array.from({length: formState.days}, (_,i) => `
+    <div class="day-row">
+      <div class="day-row-label">GIORNO ${i+1}</div>
+      <div class="day-selects">
+        <div class="day-select">
+          <div class="select-label">FOCUS</div>
+          <select onchange="formState.dayFocus[${i}]=this.value">
+            ${focuses.map(f => `<option ${formState.dayFocus[i]===f?'selected':''} value="${f}">${f}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function selectSkill(v, btn) {
+  formState.skill = v;
+  document.querySelectorAll('#skill-pills .pill-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor=''; });
+  btn.classList.add('active'); btn.style.borderColor='var(--purple)';
+}
+function selectMuscle(v, btn) {
+  formState.muscle = v;
+  document.querySelectorAll('#muscle-pills .pill-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor=''; });
+  btn.classList.add('active'); btn.style.borderColor='var(--blue)';
+}
+function toggleEquip(btn, val) {
+  btn.classList.toggle('active');
+  if (btn.classList.contains('active')) {
+    if (!formState.equipment.includes(val)) formState.equipment.push(val);
+  } else {
+    formState.equipment = formState.equipment.filter(e => e !== val);
+  }
+}
+function selectTime(v, btn) {
+  formState.time = v;
+  document.querySelectorAll('#time-pills .pill-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor=''; });
+  btn.classList.add('active'); btn.style.borderColor='var(--gold)';
+}
+
+// ── AI GENERATION ──
+async function generateProgram() {
+  showScreen('loading');
+  const msgs = ['Analisi dello storico...','Selezione esercizi...','Bilanciamento sessioni...','Calibrazione volume...'];
+  let mi = 0;
+  const interval = setInterval(() => {
+    document.getElementById('loading-sub').textContent = msgs[mi % msgs.length];
+    mi++;
+  }, 1800);
+
+  const recentHistory = history.slice(-4);
+  const recentExerciseIds = recentHistory.flatMap(p => p.giorni.flatMap(g => g.fasi.flatMap(f => f.esercizi.map(e => e.id))));
+  const uniqueRecent = [...new Set(recentExerciseIds)];
+
+  const exerciseList = DB.esercizi.map(e =>
+    `${e.id}|lv${e.difficolta}|cat:${e.categoria}|tipo:${e.tipo}|muscoli:${e.muscoli.join(',')}|attrezzo:${e.attrezzo.join(',')}|pattern:${e.pattern}|skill_target:${e.skill_target}|sets:${e.sets_default}|rec:${e.recupero}s`
+  ).join('\n');
+
+  const prompt = `Sei un trainer esperto di calisthenics. Crea un programma di allenamento settimanale in JSON.
+
+PROFILO UTENTE:
+- Livello: ${profile.level}/5
+- Tempo disponibile: ${formState.time} minuti per sessione
+- Skill obiettivo: ${formState.skill}
+- Muscoli da enfatizzare: ${formState.muscle}
+- Attrezzi disponibili: ${formState.equipment.join(', ')}
+
+CONFIGURAZIONE GIORNI:
+${formState.dayFocus.map((f,i) => `Giorno ${i+1}: ${f}`).join('\n')}
+
+ESERCIZI DA EVITARE (già usati di recente):
+${uniqueRecent.slice(0,30).join(', ')}
+
+DATABASE ESERCIZI (id|livello|categoria|tipo|muscoli|attrezzo|pattern|skill_target|serie_default|recupero):
+${exerciseList}
+
+REGOLE:
+1. Usa SOLO esercizi con difficoltà <= ${profile.level + 1} (max lv${Math.min(5, profile.level + 1)})
+2. Ogni sessione ha 3 fasi: POTENZIAMENTO (40% del tempo), SKILL (35%), CORE (25%)
+3. Per ${formState.time} minuti: calibra il numero di esercizi di conseguenza (45min=meno volume, 90min=più volume)
+4. Varia serie e reps in base alla complessità degli esercizi nella sessione
+5. Se skill obiettivo != Nessuno, includi almeno 1-2 esercizi propedeutici a quella skill nella fase SKILL
+6. Usa solo attrezzi disponibili: ${formState.equipment.join(', ')}
+7. Evita esercizi con attrezzo "muro" se "muro" non è negli attrezzi
+8. Bilancia pattern motori nella settimana (non solo vertical_pull o solo horizontal_push)
+9. Se muscoli da enfatizzare != Nessuno, aggiungi 1 esercizio extra per quei muscoli
+
+FORMATO OUTPUT — rispondi SOLO con questo JSON, niente altro:
+{
+  "titolo": "string (es. 'Push / Pull / Core')",
+  "giorni": [
+    {
+      "label": "GIORNO 1",
+      "focus": "Spinta",
+      "fasi": [
+        {
+          "nome": "POTENZIAMENTO",
+          "durata_min": 25,
+          "esercizi": [
+            {
+              "id": "push_up",
+              "serie": "4 × 10-12",
+              "recupero": "60″"
+            }
+          ]
+        },
+        {
+          "nome": "SKILL",
+          "durata_min": 20,
+          "esercizi": []
+        },
+        {
+          "nome": "CORE",
+          "durata_min": 15,
+          "esercizi": []
+        }
+      ]
+    }
+  ]
+}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    clearInterval(interval);
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    currentProgram = JSON.parse(text);
+    currentProgram.inputs = { ...formState };
+    renderProgram(currentProgram);
+    showScreen('program');
+  } catch(e) {
+    clearInterval(interval);
+    showScreen('generate');
+    alert('Errore nella generazione. Riprova.');
+    console.error(e);
+  }
+}
+
+// ── PROGRAM VIEW ──
+const phaseColors = { 'POTENZIAMENTO': 'var(--gold)', 'SKILL': 'var(--purple)', 'CORE': 'var(--teal)' };
+
+function renderProgram(prog) {
+  document.getElementById('prog-title').textContent = prog.titolo || 'Programma';
+  const tags = document.getElementById('prog-tags');
+  tags.innerHTML = `
+    <span class="tag tag-focus">${prog.giorni.length} GIORNI</span>
+    <span class="tag tag-focus">${formState.time} MIN</span>
+    ${formState.skill !== 'Nessuno' ? `<span class="tag tag-skill">${formState.skill.toUpperCase()}</span>` : ''}
+    ${formState.muscle !== 'Nessuno' ? `<span class="tag" style="background:var(--blue)22;color:var(--blue);border:1px solid var(--blue)44">${formState.muscle.toUpperCase()}</span>` : ''}
+  `;
+  const tabs = document.getElementById('day-tabs');
+  tabs.innerHTML = prog.giorni.map((g,i) =>
+    `<button class="day-tab ${i===0?'active':''}" onclick="switchDay(${i})">${g.label}<br><small style="font-size:9px;font-weight:400;letter-spacing:1px">${g.focus.toUpperCase()}</small></button>`
+  ).join('');
+  currentDayIndex = 0;
+  renderDay(0);
+  document.getElementById('prog-save-btn').disabled = false;
+  document.getElementById('prog-save-btn').textContent = 'SALVA ↑';
+}
+
+function switchDay(i) {
+  currentDayIndex = i;
+  document.querySelectorAll('.day-tab').forEach((t,j) => t.classList.toggle('active', j===i));
+  renderDay(i);
+}
+
+function renderDay(i) {
+  const giorno = currentProgram.giorni[i];
+  const content = document.getElementById('day-content');
+  content.innerHTML = giorno.fasi.map(fase => {
+    const color = phaseColors[fase.nome] || 'var(--gold)';
+    const exHTML = fase.esercizi.map((ex, ei) => {
+      const dbEx = EXERCISES[ex.id];
+      if (!dbEx) return '';
+      return `<div class="ex-item" onclick="toggleEx(this)">
+        <div class="ex-row">
+          <span class="ex-n">0${ei+1}</span>
+          <div class="ex-info">
+            <div class="ex-name">${dbEx.name}</div>
+            <div class="ex-meta">
+              <span class="ex-sets" style="color:${color}">${ex.serie}</span>
+              <span class="ex-tool">· ${dbEx.attrezzo.join(', ')}</span>
+            </div>
+          </div>
+          <span class="ex-chev">›</span>
+        </div>
+        <div class="ex-desc">${dbEx.descrizione}<br><br><span style="color:var(--muted)">Recupero: ${ex.recupero}</span></div>
+      </div>`;
+    }).join('');
+    return `<div class="phase-block">
+      <div class="phase-header">
+        
