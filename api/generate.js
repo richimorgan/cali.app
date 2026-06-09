@@ -20,8 +20,11 @@ export default async function handler(req, res) {
       }
     );
     const data = await response.json();
+    console.log('Gemini raw response:', JSON.stringify(data));
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // Restituisce formato compatibile con quello che si aspetta index.html
+    if (!text) {
+      return res.status(200).json({ error: 'empty', debug: JSON.stringify(data) });
+    }
     res.status(200).json({ content: [{ text }] });
   } catch(e) {
     res.status(500).json({ error: e.message });
