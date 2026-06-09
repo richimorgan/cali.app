@@ -274,7 +274,7 @@ var EX = {};
 DB.esercizi.forEach(function(e){ EX[e.id] = e; });
 
 var profile = null;
-var history = [];
+var progHistory = [];
 var ghToken = null;
 var gistId = null;
 var currentProg = null;
@@ -347,7 +347,7 @@ async function init() {
   goTo('sLoad');
   document.getElementById('loadSub').textContent = 'Caricamento dati...';
   var data = await loadGist();
-  if (data) { profile = data.profile; history = Array.isArray(data.history) ? data.history : []; }
+  if (data) { profile = data.profile; progHistory = Array.isArray(data.history) ? data.history : []; }
   if (!profile) { goTo('sSetup'); return; }
   renderHome();
   goTo('sHome');
@@ -368,7 +368,7 @@ async function doSaveToken() {
     goTo('sLoad');
     document.getElementById('loadSub').textContent = 'Caricamento dati...';
     var data = await loadGist();
-    if (data) { profile = data.profile; history = Array.isArray(data.history) ? data.history : []; }
+    if (data) { profile = data.profile; progHistory = Array.isArray(data.history) ? data.history : []; }
     if (!profile) { goTo('sSetup'); } else { renderHome(); goTo('sHome'); }
   } catch(e) { err.style.display = 'block'; }
 }
@@ -383,8 +383,8 @@ function pickLevel(n, btn) {
 async function doSaveProfile() {
   if (!selLevel) return;
   profile = { level: selLevel, created: new Date().toISOString() };
-  history = Array.isArray(history) ? history : [];
-  await saveGist({ profile: profile, history: history });
+  progHistory = Array.isArray(progHistory) ? progHistory : [];
+  await saveGist({ profile: profile, history: progHistory });
   renderHome();
   goTo('sHome');
 }
@@ -397,15 +397,16 @@ function renderHome() {
 }
 
 function renderHistList() {
+  if (!Array.isArray(progHistory)) progHistory = [];
   var el = document.getElementById('histList');
-  if (!history.length) {
+  if (!progHistory.length) {
     el.innerHTML = '<div class="hist-empty">Nessun programma salvato ancora.</div>';
     return;
   }
   var html = '';
-  var items = history.slice().reverse().slice(0,5);
+  var items = progHistory.slice().reverse().slice(0,5);
   items.forEach(function(p, i) {
-    var realIdx = history.length - 1 - i;
+    var realIdx = progHistory.length - 1 - i;
     var d = new Date(p.savedAt);
     var dateStr = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
     var focuses = p.giorni.map(function(g){
@@ -481,7 +482,7 @@ async function doGenerate() {
     document.getElementById('loadSub').textContent = msgs[mi % msgs.length]; mi++;
   }, 1800);
 
-  var recent = history.slice(-4);
+  var recent = progHistory.slice(-4);
   var recentIds = [];
   recent.forEach(function(p){
     p.giorni.forEach(function(g){
@@ -614,15 +615,15 @@ async function doSaveProgram() {
   var btn = document.getElementById('progSaveBtn');
   btn.disabled = true; btn.textContent = '...';
   currentProg.savedAt = new Date().toISOString();
-  history.push(currentProg);
-  if (history.length > 10) history.shift();
-  await saveGist({ profile: profile, history: history });
+  progHistory.push(currentProg);
+  if (progHistory.length > 10) progHistory.shift();
+  await saveGist({ profile: profile, history: progHistory });
   btn.textContent = 'SALVATO';
   renderHistList();
 }
 
 function viewHist(i) {
-  currentProg = history[i];
+  currentProg = progHistory[i];
   if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
