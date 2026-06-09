@@ -550,38 +550,28 @@ async function doGenerate() {
 
   var b = calcBalance(form.balance);
 
-  var focusRules = form.dayFocus.map(function(f, i) {
-    var cat = '';
-    if (f === 'Spinta') cat = 'SOLO esercizi di categoria spinta (petto, tricipiti, spalle) nella fase POTENZIAMENTO';
-    else if (f === 'Tirata') cat = 'SOLO esercizi di categoria tirata (dorsali, bicipiti) nella fase POTENZIAMENTO';
-    else if (f === 'Gambe') cat = 'SOLO esercizi di categoria gambe nella fase POTENZIAMENTO';
-    else if (f === 'Mix') cat = 'Mix bilanciato di spinta e tirata nella fase POTENZIAMENTO';
-    else if (f === 'Full Body') cat = 'Esercizi che coinvolgono tutto il corpo nella fase POTENZIAMENTO';
-    return 'Giorno ' + (i+1) + ' (' + f + '): ' + cat;
-  }).join('\n');
+  var catMap = { 'Spinta': 'spinta', 'Tirata': 'tirata', 'Gambe': 'gambe', 'Mix': 'spinta+tirata', 'Full Body': 'spinta+tirata+gambe' };
+  var focusConstraint = form.dayFocus.map(function(f, i) {
+    return 'GIORNO ' + (i+1) + ' → POTENZIAMENTO: SOLO cat=' + (catMap[f] || f);
+  }).join(' | ');
 
-  var prompt = 'Sei un trainer esperto di calisthenics. Crea un programma settimanale in JSON.\n\n' +
-    'PROFILO:\n- Livello: ' + profile.level + '/5\n- Tempo: ' + form.time + ' min\n' +
-    '- Skill obiettivo: ' + form.skill + '\n- Muscoli da enfatizzare: ' + form.muscle + '\n' +
-    '- Attrezzi: ' + form.equipment.join(', ') + '\n\n' +
-    'CONFIGURAZIONE GIORNI (OBBLIGATORIA — rispetta rigorosamente):\n' + focusRules + '\n\n' +
-    'ESERCIZI RECENTI DA EVITARE:\n' + uniqueIds.slice(0,25).join(', ') + '\n\n' +
-    'DATABASE (id|livello|categoria|tipo|muscoli|attrezzo|pattern|serie|recupero):\n' + exList + '\n\n' +
+  var prompt = 'Crea un programma calisthenics settimanale in JSON. Segui TUTTE le regole senza eccezioni.\n\n' +
+    'VINCOLO FOCUS (ASSOLUTO — non derogabile):\n' + focusConstraint + '\n\n' +
+    'PROFILO: livello=' + profile.level + '/5 | tempo=' + form.time + 'min | skill=' + form.skill + ' | muscoli=' + form.muscle + '\n' +
+    'ATTREZZI DISPONIBILI (usa SOLO questi): ' + form.equipment.join(', ') + '\n\n' +
+    'GIORNI: ' + dayLines + '\n\n' +
+    'ESERCIZI RECENTI DA EVITARE: ' + uniqueIds.slice(0,25).join(', ') + '\n\n' +
+    'DATABASE (id|lv|cat|tipo|muscoli|attrezzo|pattern|sets|rec):\n' + exList + '\n\n' +
     'REGOLE:\n' +
-    '1. Usa solo esercizi con difficolta <= ' + Math.min(5, profile.level + 1) + '\n' +
-    '2. Ogni giorno ha 3 fasi con queste percentuali di tempo: POTENZIAMENTO ' + b.pot + '%, SKILL ' + b.skill + '%, CORE ' + b.core + '%\n' +
-    '3. Numero esercizi OBBLIGATORIO per sessione da ' + form.time + ' min — 45min: POTENZIAMENTO 3-4, SKILL 2-3, CORE 2; 60min: POTENZIAMENTO 4-5, SKILL 3-4, CORE 2-3; 90min: POTENZIAMENTO 5-7, SKILL 4-5, CORE 3-4. Varia il numero tra i giorni.\n' +
-    '4. REGOLA FOCUS: nella fase POTENZIAMENTO usa ESCLUSIVAMENTE esercizi della categoria indicata per quel giorno. Non mischiare categorie diverse da quella del focus.\n' +
-    '5. Se skill != Nessuno includi esercizi propedeutici a ' + form.skill + ' nella fase SKILL\n' +
-    '6. Usa solo attrezzi: ' + form.equipment.join(', ') + '\n' +
-    '7. Non ripetere gli esercizi recenti elencati sopra\n' +
-    '8. Varia serie e reps in base alla difficolta degli esercizi\n\n' +
-    'RISPONDI SOLO CON QUESTO JSON (niente testo prima o dopo):\n' +
-    '{\n  "titolo": "string",\n  "giorni": [\n    {\n      "label": "GIORNO 1",\n' +
-    '      "focus": "Spinta",\n      "fasi": [\n        {\n          "nome": "POTENZIAMENTO",\n' +
-    '          "durata_min": 25,\n          "esercizi": [\n            {\n' +
-    '              "id": "push_up",\n              "serie": "4 x 10-12",\n              "recupero": "60s"\n' +
-    '            }\n          ]\n        }\n      ]\n    }\n  ]\n}';
+    '1. difficolta <= ' + Math.min(5, profile.level + 1) + '\n' +
+    '2. 3 fasi: POTENZIAMENTO=' + b.pot + '% SKILL=' + b.skill + '% CORE=' + b.core + '%\n' +
+    '3. Esercizi per ' + form.time + 'min: 45min→pot3-4,skill2-3,core2 | 60min→pot4-5,skill3-4,core2-3 | 90min→pot5-7,skill4-5,core3-4. Varia tra i giorni.\n' +
+    '4. POTENZIAMENTO: usa SOLO esercizi con cat corrispondente al focus del giorno (vedi VINCOLO FOCUS sopra)\n' +
+    '5. ' + (form.skill !== 'Nessuno' ? 'SKILL: includi progressioni verso ' + form.skill : 'SKILL: esercizi di skill generici') + '\n' +
+    '6. Non ripetere esercizi recenti\n' +
+    '7. Varia serie/reps per difficolta\n\n' +
+    'RISPONDI SOLO JSON (zero testo prima o dopo):\n' +
+    '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","durata_min":24,"esercizi":[{"id":"push_up","serie":"4 x 10-12","recupero":"60s"}]},{"nome":"SKILL","durata_min":21,"esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"}]},{"nome":"CORE","durata_min":15,"esercizi":[{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]}]}]}';
 
   try {
     var resp = await fetch('/api/generate', {
