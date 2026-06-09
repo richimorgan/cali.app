@@ -301,14 +301,14 @@ async function loadGist() {
   if (!ghToken) return null;
   try {
     var r = await fetch('https://api.github.com/gists', {
-      headers: { 'Authorization': 'token ' + ghToken, 'Cache-Control': 'no-cache' }
+      headers: { 'Authorization': 'token ' + ghToken }
     });
     var list = await r.json();
     var found = list.find(function(g){ return g.files && g.files[FNAME]; });
     if (!found) return null;
     gistId = found.id;
     var r2 = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + ghToken, 'Cache-Control': 'no-cache' }
+      headers: { 'Authorization': 'token ' + ghToken }
     });
     var g = await r2.json();
     return JSON.parse(g.files[FNAME].content);
