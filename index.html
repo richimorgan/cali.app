@@ -511,7 +511,7 @@ async function doGenerate() {
     'REGOLE:\n' +
     '1. Usa solo esercizi con difficolta <= ' + Math.min(5, profile.level + 1) + '\n' +
     '2. Ogni giorno ha 3 fasi: POTENZIAMENTO (40% tempo), SKILL (35%), CORE (25%)\n' +
-    '3. Calibra numero esercizi e serie in base al tempo: ' + form.time + ' min\n' +
+    '3. Calibra numero esercizi e serie in base al tempo: ' + form.time + ' min. Usa questa guida: 45min=7-9 esercizi totali, 60min=9-12 esercizi totali, 90min=12-16 esercizi totali. Varia il numero per giorno (non sempre uguale). POTENZIAMENTO: 3-5 esercizi, SKILL: 2-4 esercizi, CORE: 2-3 esercizi.\n' +
     '4. Se skill != Nessuno includi esercizi propedeutici a ' + form.skill + ' nella fase SKILL\n' +
     '5. Usa solo attrezzi: ' + form.equipment.join(', ') + ' (escludi esercizi che richiedono attrezzi non disponibili)\n' +
     '6. Non ripetere gli esercizi recenti elencati sopra\n' +
