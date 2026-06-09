@@ -554,25 +554,40 @@ async function doGenerate() {
 
   var catMap = { 'Spinta': 'spinta', 'Tirata': 'tirata', 'Gambe': 'gambe', 'Mix': 'spinta+tirata', 'Full Body': 'spinta+tirata+gambe' };
   var focusConstraint = form.dayFocus.map(function(f, i) {
-    return 'GIORNO ' + (i+1) + ' → POTENZIAMENTO: SOLO cat=' + (catMap[f] || f);
+    return 'GIORNO ' + (i+1) + ': SOLO cat=' + (catMap[f] || f);
   }).join(' | ');
 
-  var prompt = 'Crea un programma calisthenics settimanale in JSON. Segui TUTTE le regole senza eccezioni.\n\n' +
-    'VINCOLO FOCUS (ASSOLUTO — non derogabile):\n' + focusConstraint + '\n\n' +
-    'PROFILO: livello=' + profile.level + '/5 | tempo=' + form.time + 'min | skill=' + form.skill + ' | muscoli=' + form.muscle + '\n' +
-    'ATTREZZI DISPONIBILI (usa SOLO questi): ' + form.equipment.join(', ') + '\n\n' +
-    'GIORNI: ' + dayLines + '\n\n' +
+  // Filter exercises by available equipment
+  var availEquip = form.equipment;
+  var allowedExIds = DB.esercizi.filter(function(e) {
+    return e.attrezzo.every(function(a) { return availEquip.indexOf(a) >= 0; });
+  }).map(function(e){ return e.id; });
+
+  var exListFiltered = DB.esercizi.filter(function(e) {
+    return e.attrezzo.every(function(a) { return availEquip.indexOf(a) >= 0; });
+  }).map(function(e){
+    return e.id + '|lv' + e.difficolta + '|cat:' + e.categoria + '|tipo:' + e.tipo +
+      '|muscoli:' + e.muscoli.join(',') + '|attrezzo:' + e.attrezzo.join(',') +
+      '|pattern:' + e.pattern + '|sets:' + e.sets_default + '|rec:' + e.recupero + 's';
+  }).join('\n');
+
+  var exCount = form.time === 45 ? 'POTENZIAMENTO min4, SKILL min3, CORE min2' :
+                form.time === 60 ? 'POTENZIAMENTO min5, SKILL min3, CORE min3' :
+                                   'POTENZIAMENTO min6, SKILL min4, CORE min3';
+
+  var prompt = 'Crea un programma calisthenics settimanale in JSON. Rispetta TUTTI i vincoli.\n\n' +
+    '=== VINCOLI ASSOLUTI (non derogabili) ===\n' +
+    '1. ATTREZZI: usa SOLO esercizi da questa lista (già filtrata per attrezzi disponibili)\n' +
+    '2. FOCUS: ' + focusConstraint + '\n' +
+    '3. VOLUME: ' + form.time + 'min/sessione — ' + exCount + ' esercizi per fase. Varia tra giorni.\n' +
+    '4. DIFFICOLTA: max lv' + Math.min(5, profile.level + 1) + '\n\n' +
+    '=== PREFERENZE (usale per orientare le scelte, non sono obbligatorie) ===\n' +
+    (form.skill !== 'Nessuno' ? '- Skill obiettivo: ' + form.skill + ' (includi qualche propedeutico nella fase SKILL se possibile)\n' : '') +
+    (form.muscle !== 'Nessuno' ? '- Muscoli da enfatizzare: ' + form.muscle + ' (privilegia esercizi che li coinvolgono)\n' : '') +
+    '- Bilanciamento: POTENZIAMENTO=' + b.pot + '% SKILL=' + b.skill + '% CORE=' + b.core + '%\n\n' +
     'ESERCIZI RECENTI DA EVITARE: ' + uniqueIds.slice(0,25).join(', ') + '\n\n' +
-    'DATABASE (id|lv|cat|tipo|muscoli|attrezzo|pattern|sets|rec):\n' + exList + '\n\n' +
-    'REGOLE:\n' +
-    '1. difficolta <= ' + Math.min(5, profile.level + 1) + '\n' +
-    '2. 3 fasi: POTENZIAMENTO=' + b.pot + '% SKILL=' + b.skill + '% CORE=' + b.core + '%\n' +
-    '3. Esercizi per ' + form.time + 'min: 45min→pot3-4,skill2-3,core2 | 60min→pot4-5,skill3-4,core2-3 | 90min→pot5-7,skill4-5,core3-4. Varia tra i giorni.\n' +
-    '4. POTENZIAMENTO: usa SOLO esercizi con cat corrispondente al focus del giorno (vedi VINCOLO FOCUS sopra)\n' +
-    '5. ' + (form.skill !== 'Nessuno' ? 'SKILL: includi progressioni verso ' + form.skill : 'SKILL: esercizi di skill generici') + '\n' +
-    '6. Non ripetere esercizi recenti\n' +
-    '7. Varia serie/reps per difficolta\n\n' +
-    'RISPONDI SOLO JSON (zero testo prima o dopo):\n' +
+    'DATABASE FILTRATO (solo attrezzi disponibili: ' + availEquip.join(', ') + '):\n' + exListFiltered + '\n\n' +
+    'RISPONDI SOLO JSON:\n' +
     '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","durata_min":24,"esercizi":[{"id":"push_up","serie":"4 x 10-12","recupero":"60s"}]},{"nome":"SKILL","durata_min":21,"esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"}]},{"nome":"CORE","durata_min":15,"esercizi":[{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]}]}]}';
 
   try {
