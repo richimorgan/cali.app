@@ -522,11 +522,11 @@ async function doGenerate() {
     '            }\n          ]\n        }\n      ]\n    }\n  ]\n}';
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gemini-2.0-flash',
         max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }]
       })
