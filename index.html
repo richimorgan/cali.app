@@ -128,6 +128,14 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 
 /* LEVEL CHANGE */
 .lv-change-btn{background:none;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;text-decoration:underline;padding:4px 0}
+.balance-wrap{display:flex;flex-direction:column;gap:10px}
+.balance-labels{display:flex;justify-content:space-between}
+.balance-lbl-l{font-size:9px;letter-spacing:2px;font-family:'JetBrains Mono',monospace;color:var(--gold)}
+.balance-lbl-r{font-size:9px;letter-spacing:2px;font-family:'JetBrains Mono',monospace;color:var(--purple)}
+.balance-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer}
+.balance-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--text);cursor:pointer;border:2px solid var(--border)}
+.balance-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--text);cursor:pointer;border:2px solid var(--border)}
+.balance-info{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center}
 </style>
 </head>
 <body>
@@ -245,6 +253,17 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
         <button class="pill" style="color:var(--gold)" onclick="pickTime(90,this)">90 MIN</button>
       </div>
     </div>
+    <div class="fg">
+      <div class="fg-lbl">BILANCIAMENTO SESSIONE</div>
+      <div class="balance-wrap">
+        <div class="balance-labels">
+          <span class="balance-lbl-l">POTENZIAMENTO</span>
+          <span class="balance-lbl-r">SKILL</span>
+        </div>
+        <input type="range" class="balance-slider" id="balanceSlider" min="0" max="100" value="50" oninput="updateBalance(this.value)">
+        <div class="balance-info" id="balanceInfo">Potenziamento 40% · Skill 35% · Core 25%</div>
+      </div>
+    </div>
     <button class="btn-gold" id="genBtn" onclick="doGenerate()">GENERA PROGRAMMA</button>
   </div>
 </div>
@@ -285,7 +304,8 @@ var form = {
   skill: 'Nessuno',
   muscle: 'Nessuno',
   equipment: ['Sbarra','Parallele','Solo terra'],
-  time: 60
+  time: 60,
+  balance: 50
 };
 
 var FNAME = 'calisthenics_data.json';
@@ -300,15 +320,16 @@ function goTo(id) {
 async function loadGist() {
   if (!ghToken) return null;
   try {
-    var r = await fetch('https://api.github.com/gists', {
-      headers: { 'Authorization': 'token ' + ghToken }
+    var ts = '?t=' + Date.now();
+    var r = await fetch('https://api.github.com/gists' + ts, {
+      headers: { 'Authorization': 'token ' + ghToken, 'If-None-Match': '' }
     });
     var list = await r.json();
     var found = list.find(function(g){ return g.files && g.files[FNAME]; });
     if (!found) return null;
     gistId = found.id;
-    var r2 = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + ghToken }
+    var r2 = await fetch('https://api.github.com/gists/' + gistId + ts, {
+      headers: { 'Authorization': 'token ' + ghToken, 'If-None-Match': '' }
     });
     var g = await r2.json();
     return JSON.parse(g.files[FNAME].content);
@@ -474,6 +495,26 @@ function pickTime(v, btn) {
   btn.classList.add('on'); btn.style.borderColor = 'var(--gold)';
 }
 
+function updateBalance(val) {
+  form.balance = parseInt(val);
+  var b = calcBalance(form.balance);
+  document.getElementById('balanceInfo').textContent =
+    'Potenziamento ' + b.pot + '% · Skill ' + b.skill + '% · Core ' + b.core + '%';
+  // Update slider gradient
+  var slider = document.getElementById('balanceSlider');
+  slider.style.background = 'linear-gradient(to right, var(--gold) 0%, var(--gold) ' + val + '%, var(--purple) ' + val + '%, var(--purple) 100%)';
+}
+
+function calcBalance(val) {
+  // val 0-100: 0=max potenziamento, 100=max skill
+  // core stays between 15-25%
+  var core = Math.round(25 - (Math.abs(val - 50) / 50) * 5); // 20-25%
+  var remaining = 100 - core;
+  var pot = Math.round(remaining * (1 - val / 100));
+  var skill = remaining - pot;
+  return { pot: pot, skill: skill, core: core };
+}
+
 async function doGenerate() {
   goTo('sLoad');
   var msgs = ['Analisi dello storico...','Selezione esercizi...','Bilanciamento sessioni...','Calibrazione volume...'];
@@ -501,6 +542,7 @@ async function doGenerate() {
 
   var dayLines = form.dayFocus.map(function(f,i){ return 'Giorno ' + (i+1) + ': ' + f; }).join('\n');
 
+  var b = calcBalance(form.balance);
   var prompt = 'Sei un trainer esperto di calisthenics. Crea un programma settimanale in JSON.\n\n' +
     'PROFILO:\n- Livello: ' + profile.level + '/5\n- Tempo: ' + form.time + ' min\n' +
     '- Skill obiettivo: ' + form.skill + '\n- Muscoli da enfatizzare: ' + form.muscle + '\n' +
@@ -510,8 +552,8 @@ async function doGenerate() {
     'DATABASE (id|livello|categoria|tipo|muscoli|attrezzo|pattern|serie|recupero):\n' + exList + '\n\n' +
     'REGOLE:\n' +
     '1. Usa solo esercizi con difficolta <= ' + Math.min(5, profile.level + 1) + '\n' +
-    '2. Ogni giorno ha 3 fasi: POTENZIAMENTO (40% tempo), SKILL (35%), CORE (25%)\n' +
-    '3. Calibra numero esercizi e serie in base al tempo: ' + form.time + ' min. Usa questa guida: 45min=7-9 esercizi totali, 60min=9-12 esercizi totali, 90min=12-16 esercizi totali. Varia il numero per giorno (non sempre uguale). POTENZIAMENTO: 3-5 esercizi, SKILL: 2-4 esercizi, CORE: 2-3 esercizi.\n' +
+    '2. Ogni giorno ha 3 fasi con queste percentuali di tempo: POTENZIAMENTO ' + b.pot + '%, SKILL ' + b.skill + '%, CORE ' + b.core + '%\n' +
+    '3. Calibra numero esercizi in base al tempo ' + form.time + ' min: 45min=7-9 esercizi totali, 60min=9-12, 90min=12-16. Varia il numero tra i giorni (non sempre uguale). POTENZIAMENTO: 3-5 esercizi, SKILL: 2-4 esercizi, CORE: 2-3 esercizi.\n' +
     '4. Se skill != Nessuno includi esercizi propedeutici a ' + form.skill + ' nella fase SKILL\n' +
     '5. Usa solo attrezzi: ' + form.equipment.join(', ') + ' (escludi esercizi che richiedono attrezzi non disponibili)\n' +
     '6. Non ripetere gli esercizi recenti elencati sopra\n' +
