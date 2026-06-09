@@ -347,7 +347,7 @@ async function init() {
   goTo('sLoad');
   document.getElementById('loadSub').textContent = 'Caricamento dati...';
   var data = await loadGist();
-  if (data) { profile = data.profile; history = data.history || []; }
+  if (data) { profile = data.profile; history = Array.isArray(data.history) ? data.history : []; }
   if (!profile) { goTo('sSetup'); return; }
   renderHome();
   goTo('sHome');
@@ -368,7 +368,7 @@ async function doSaveToken() {
     goTo('sLoad');
     document.getElementById('loadSub').textContent = 'Caricamento dati...';
     var data = await loadGist();
-    if (data) { profile = data.profile; history = data.history || []; }
+    if (data) { profile = data.profile; history = Array.isArray(data.history) ? data.history : []; }
     if (!profile) { goTo('sSetup'); } else { renderHome(); goTo('sHome'); }
   } catch(e) { err.style.display = 'block'; }
 }
