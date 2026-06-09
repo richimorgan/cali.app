@@ -383,6 +383,7 @@ function pickLevel(n, btn) {
 async function doSaveProfile() {
   if (!selLevel) return;
   profile = { level: selLevel, created: new Date().toISOString() };
+  history = Array.isArray(history) ? history : [];
   await saveGist({ profile: profile, history: history });
   renderHome();
   goTo('sHome');
