@@ -461,6 +461,8 @@ function pickDays(n, btn) {
   renderDayCfg();
 }
 
+function setDayFocus(i, val) { form.dayFocus[i] = val; }
+
 function renderDayCfg() {
   var c = document.getElementById('dayCfg');
   var opts = ['Spinta','Tirata','Mix','Gambe','Full Body'];
@@ -468,7 +470,7 @@ function renderDayCfg() {
   for (var i = 0; i < form.days; i++) {
     var sel = form.dayFocus[i] || 'Mix';
     html += '<div class="day-row-card"><div class="day-row-lbl">GIORNO ' + (i+1) + '</div>';
-    html += '<select onchange="form.dayFocus[' + i + ']=this.value">';
+    html += '<select onchange="setDayFocus(' + i + ',this.value)">';
     opts.forEach(function(o){
       html += '<option value="' + o + '"' + (sel === o ? ' selected' : '') + '>' + o + '</option>';
     });
