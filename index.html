@@ -531,6 +531,83 @@ function selectForPhase(fase, n, context) {
 }
 
 
+function generaTitolo(form) {
+  var focusLabels = form.dayFocus.join(' / ');
+  return focusLabels + (form.skill !== 'Nessuno' ? ' · ' + form.skill : '');
+}
+
+function buildDay(dayFocus, counts, context) {
+  context.dayFocus = dayFocus;
+  context.patternsUsedToday = [];
+  context.musclesUsedToday = [];
+
+  var potEx  = selectForPhase('potenziamento', counts.potEx,  context);
+  var skillEx = selectForPhase('skill',        counts.skillEx, context);
+  var coreEx  = selectForPhase('core',         counts.coreEx,  context);
+
+  return {
+    label: 'GIORNO ' + (context.dayIndex + 1),
+    focus: dayFocus,
+    fasi: [
+      { nome: 'POTENZIAMENTO', esercizi: potEx  },
+      { nome: 'SKILL',         esercizi: skillEx },
+      { nome: 'CORE',          esercizi: coreEx  }
+    ]
+  };
+}
+
+function buildProgram(form, progHistory) {
+  // Esercizi recenti per anti-ripetizione (ultimi 2 programmi)
+  var recentExIds = progHistory.slice(-2).map(function(p) {
+    var ids = [];
+    p.giorni.forEach(function(g) {
+      g.fasi.forEach(function(f) {
+        f.esercizi.forEach(function(e) { ids.push(e.id); });
+      });
+    });
+    return ids;
+  });
+
+  // Conteggio pattern negli ultimi 4 programmi
+  var recentPatterns = {};
+  progHistory.slice(-4).forEach(function(p) {
+    p.giorni.forEach(function(g) {
+      g.fasi.forEach(function(f) {
+        f.esercizi.forEach(function(e) {
+          var ex = EX[e.id];
+          if (ex) recentPatterns[ex.pattern] = (recentPatterns[ex.pattern] || 0) + 1;
+        });
+      });
+    });
+  });
+
+  var counts = calcBalance(form.balance, form.time);
+
+  var context = {
+    level:    form.level || (profile ? profile.level : 3),
+    equipment: form.equipment,
+    skill:    form.skill,
+    muscle:   form.muscle,
+    recentExIds:    recentExIds,
+    recentPatterns: recentPatterns,
+    patternsUsedToday: [],
+    musclesUsedToday:  []
+  };
+
+  var giorni = form.dayFocus.map(function(focus, i) {
+    context.dayIndex = i;
+    return buildDay(focus, counts, context);
+  });
+
+  return {
+    titolo: generaTitolo(form),
+    giorni: giorni,
+    inputs: JSON.parse(JSON.stringify(form))
+  };
+}
+
+
+
 // ── Navigation ─────────────────────────────────────────
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
