@@ -451,6 +451,49 @@ function filterCandidates(fase, context) {
   return results;
 }
 
+function scoreExercise(ex, context) {
+  var score = 100;
+
+  // VARIETÀ — penalizza esercizi recenti
+  var recentExIds = context.recentExIds || [];
+  var lastProg  = recentExIds[0] || [];
+  var prevProg  = recentExIds[1] || [];
+  if (lastProg.indexOf(ex.id) >= 0)  score -= 60;
+  if (prevProg.indexOf(ex.id) >= 0)  score -= 30;
+
+  // PATTERN — evita duplicati nella stessa sessione
+  var patternsUsed = context.patternsUsedToday || [];
+  var recentPat    = context.recentPatterns    || {};
+  if (patternsUsed.indexOf(ex.pattern) >= 0)  score -= 50;
+  if ((recentPat[ex.pattern] || 0) > 2)       score -= 20;
+
+  // MUSCOLI — evita sovrapposizione eccessiva nella sessione
+  var musclesUsed = context.musclesUsedToday || [];
+  var overlap = ex.muscoli.filter(function(m) { return musclesUsed.indexOf(m) >= 0; });
+  score -= overlap.length * 15;
+
+  // SKILL OBIETTIVO — premia propedeutici e skill stessa
+  var skillId = SKILL_ID_MAP[context.skill] || '';
+  if (skillId && ex.propedeutico_a.indexOf(skillId) >= 0) score += 40;
+  if (skillId && ex.id === skillId)                       score += 60;
+
+  // MUSCOLO ENFATIZZATO
+  if (context.muscle && context.muscle !== 'Nessuno') {
+    var muscLower = context.muscle.toLowerCase();
+    if (ex.muscoli.indexOf(muscLower) >= 0) score += 25;
+  }
+
+  // DIFFICOLTÀ IDEALE
+  if (ex.difficolta === context.level)     score += 20;
+  if (ex.difficolta === context.level - 1) score += 10;
+  if (ex.difficolta === context.level + 1) score += 5;
+
+  // RUMORE — impedisce output identico ogni volta
+  score += Math.floor(Math.random() * 31) - 15;
+
+  return score;
+}
+
 // ── Navigation ─────────────────────────────────────────
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
