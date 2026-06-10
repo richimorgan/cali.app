@@ -383,6 +383,73 @@ var form = {
   balance: 50
 };
 var FNAME = 'calisthenics_data.json';
+// ── Algoritmo deterministico ───────────────────────────
+
+var SKILL_ID_MAP = {
+  'Planche':        'full_planche',
+  'Front Lever':    'full_front_lever',
+  'Back Lever':     'full_back_lever',
+  'Handstand':      'handstand_hold',
+  'Muscle-up':      'muscle_up',
+  'L-sit':          'l_sit',
+  'Human Flag':     'human_flag',
+  'One Arm Pull-up':'one_arm_pull_up'
+};
+
+var FOCUS_CAT_MAP = {
+  'Spinta':     's',
+  'Tirata':     't',
+  'Gambe':      'g',
+  'Mix':        null,
+  'Full Body':  null
+};
+
+function filterCandidates(fase, context) {
+  var catMap = { spinta:'s', tirata:'t', core:'c', gambe:'g', mix:'m' };
+  var maxLv = context.level + 1;
+
+  var results = DB_RAW.esercizi.filter(function(ex) {
+    // Vincolo assoluto: fase corretta
+    if (ex.fase !== fase) return false;
+
+    // Vincolo assoluto: attrezzi disponibili
+    if (!ex.attrezzo.every(function(a) { return context.equipment.indexOf(a) >= 0; })) return false;
+
+    // Vincolo assoluto: difficoltà
+    if (ex.difficolta > maxLv) return false;
+
+    // Vincolo assoluto: categoria per il focus (solo in potenziamento)
+    if (fase === 'potenziamento') {
+      var requiredCat = FOCUS_CAT_MAP[context.dayFocus];
+      if (requiredCat !== null) {
+        var exCat = catMap[ex.categoria] || ex.categoria;
+        if (exCat !== requiredCat) return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Fallback 1: pool troppo piccolo → rimuovi penalità storico (già gestito in score, ma
+  // se il pool è proprio vuoto allarga la difficoltà)
+  if (results.length === 0) {
+    results = DB_RAW.esercizi.filter(function(ex) {
+      if (ex.fase !== fase) return false;
+      if (!ex.attrezzo.every(function(a) { return context.equipment.indexOf(a) >= 0; })) return false;
+      if (ex.difficolta > context.level + 2) return false;
+      if (fase === 'potenziamento') {
+        var requiredCat = FOCUS_CAT_MAP[context.dayFocus];
+        if (requiredCat !== null) {
+          var exCat = catMap[ex.categoria] || ex.categoria;
+          if (exCat !== requiredCat) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  return results;
+}
 
 // ── Navigation ─────────────────────────────────────────
 function goTo(id) {
