@@ -842,6 +842,12 @@ function buildPromptDB(availEquip) {
 }
 
 function doGenerate() {
+  var loadMsgs = [
+    'Processando richiesta di sofferenza volontaria...',
+    'Preparando dolori muscolari personalizzati.',
+    'Calcolando la tua sofferenza...'
+  ];
+  document.getElementById('loadSub').textContent = loadMsgs[Math.floor(Math.random() * loadMsgs.length)];
   goTo('sLoad');
   setTimeout(function() {
     try {
