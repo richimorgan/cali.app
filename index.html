@@ -493,16 +493,26 @@ function pickTime(v, btn) {
 }
 
 function calcBalance(val) {
-  var core = Math.round(25 - (Math.abs(val - 50) / 50) * 5);
-  var remaining = 100 - core;
-  var pot = Math.round(remaining * (1 - val / 100));
-  return { pot: pot, skill: remaining - pot, core: core };
+  var potEx, skillEx, coreEx;
+  if (val <= 25)      { potEx = 6; skillEx = 2; coreEx = 2; }
+  else if (val <= 40) { potEx = 5; skillEx = 3; coreEx = 2; }
+  else if (val <= 60) { potEx = 4; skillEx = 3; coreEx = 3; }
+  else if (val <= 75) { potEx = 3; skillEx = 4; coreEx = 3; }
+  else                { potEx = 2; skillEx = 5; coreEx = 2; }
+  var total = potEx + skillEx + coreEx;
+  return {
+    potEx: potEx, skillEx: skillEx, coreEx: coreEx,
+    pot: Math.round(potEx/total*100),
+    skill: Math.round(skillEx/total*100),
+    core: Math.round(coreEx/total*100)
+  };
 }
 
 function updateBalance(val) {
   form.balance = parseInt(val);
   var b = calcBalance(form.balance);
-  document.getElementById('balanceInfo').textContent = 'Potenziamento ' + b.pot + '% · Skill ' + b.skill + '% · Core ' + b.core + '%';
+  document.getElementById('balanceInfo').textContent =
+    'Pot ' + b.potEx + ' esercizi · Skill ' + b.skillEx + ' · Core ' + b.coreEx;
   document.getElementById('balanceSlider').style.background =
     'linear-gradient(to right,var(--gold) 0%,var(--gold) ' + val + '%,var(--purple) ' + val + '%,var(--purple) 100%)';
 }
@@ -535,32 +545,58 @@ async function doGenerate() {
   var avoidIds = recentIds.filter(function(v,i,a){ return a.indexOf(v)===i; }).slice(0,25);
 
   var b = calcBalance(form.balance);
-  var catMap = {Spinta:'s', Tirata:'t', Gambe:'g', Mix:'s+t', 'Full Body':'s+t+g'};
-  var focusLine = form.dayFocus.map(function(f,i){ return 'G'+(i+1)+'='+( catMap[f]||f); }).join(' ');
-  var volLine = form.time===45 ? 'pot≥4,skill≥3,core≥2' : form.time===60 ? 'pot≥5,skill≥3,core≥3' : 'pot≥6,skill≥4,core≥3';
+
+  // Focus per giorno
+  var focusLine = form.dayFocus.map(function(f,i){ return 'G'+(i+1)+'='+f; }).join(' | ');
+
+  // Skill compatibilita con giorni
+  var skillGroupMap = {
+    'Planche':'spinta','Front Lever':'tirata','Back Lever':'tirata',
+    'Handstand':'spinta','Muscle-up':'mix','L-sit':'core',
+    'Human Flag':'mix','One Arm Pull-up':'tirata'
+  };
+  var skillGroup = skillGroupMap[form.skill] || 'qualsiasi';
+  var skillSection;
+  if (form.skill !== 'Nessuno') {
+    var compatDays = form.dayFocus.map(function(f,i){
+      var compat = (skillGroup==='mix' || skillGroup==='qualsiasi' || f==='Mix' || f==='Full Body' ||
+        (skillGroup==='spinta' && f==='Spinta') || (skillGroup==='tirata' && f==='Tirata') ||
+        (skillGroup==='core' && f==='Gambe'));
+      return compat ? 'G'+(i+1) : null;
+    }).filter(Boolean);
+    skillSection = 'SKILL OBIETTIVO: ' + form.skill + ' (gruppo: ' + skillGroup + ')\n' +
+      'Giorni compatibili: ' + (compatDays.join(', ')||'nessuno') + '\n' +
+      'Nei giorni compatibili: includi propedeutici di ' + form.skill + ' in SKILL e POTENZIAMENTO.\n' +
+      'Nei giorni non compatibili: scegli liberamente esercizi SKILL adatti al focus del giorno.';
+  } else {
+    skillSection = 'SKILL OBIETTIVO: nessuno. Scegli liberamente esercizi SKILL adatti al focus muscolare del giorno.';
+  }
+
   var promptDB = buildPromptDB(form.equipment);
 
-    var prompt = [
-    'Crea programma calisthenics settimanale JSON. Rispetta TUTTI i vincoli.',
+  var prompt = [
+    'Crea un programma calisthenics settimanale in JSON. Rispetta TUTTI i vincoli senza eccezioni.',
     '',
     '=VINCOLI ASSOLUTI=',
-    'FOCUS: ' + focusLine + ' (POTENZIAMENTO: SOLO cat indicata)',
-    'ATTREZZI: usa SOLO esercizi del DATABASE sotto (già filtrato)',
-    'VOLUME: ' + form.time + 'min/sessione, ' + volLine + ' per fase, varia tra giorni',
-    'LIVELLO: max difficolta ' + Math.min(5, profile.level+1),
-    'EVITA: ' + (avoidIds.join(',')||'nessuno'),
+    'GIORNI: genera ESATTAMENTE ' + form.days + ' giorni. Array "giorni" deve avere esattamente ' + form.days + ' elementi, non di piu non di meno.',
+    'FOCUS: ' + focusLine,
+    'REGOLA FOCUS: nella fase POTENZIAMENTO usa SOLO esercizi della categoria del giorno. Spinta->cat s, Tirata->cat t, Gambe->cat g, Mix/Full Body->qualsiasi.',
+    'REGOLA SKILL: usa esercizi compatibili con il gruppo muscolare del giorno.',
+    'ATTREZZI: usa SOLO esercizi del DATABASE sotto (gia filtrato per attrezzi disponibili).',
+    'LIVELLO: usa solo esercizi con lv <= ' + Math.min(5, profile.level+1) + '.',
+    'VOLUME: ogni giorno deve avere ESATTAMENTE ' + b.potEx + ' esercizi in POTENZIAMENTO, ESATTAMENTE ' + b.skillEx + ' in SKILL, ESATTAMENTE ' + b.coreEx + ' in CORE.',
+    'EVITA (esercizi recenti): ' + (avoidIds.join(', ')||'nessuno') + '.',
     '',
-    '=PREFERENZE=',
-    'Bilanciamento: pot=' + b.pot + '% skill=' + b.skill + '% core=' + b.core + '%',
-    form.skill!=='Nessuno' ? 'Skill: ' + form.skill + ' (propedeutici in SKILL se disponibili)' : '',
-    form.muscle!=='Nessuno' ? 'Muscoli: privilegia ' + form.muscle : '',
+    skillSection,
     '',
-    '=DATABASE= id|nome|lv|cat|pattern|muscoli|sets|rec[>propedeutici]',
-    'cat: s=spinta t=tirata c=core g=gambe m=mix',
+    form.muscle !== 'Nessuno' ? 'PREFERENZA MUSCOLI: privilegia esercizi che coinvolgono ' + form.muscle + '.' : '',
+    '',
+    '=DATABASE= formato: id|nome|lv|cat|pattern|muscoli|sets_default|recupero[>propedeutici]',
+    'cat: s=spinta  t=tirata  c=core  g=gambe  m=mix',
     promptDB,
     '',
-    '=OUTPUT= Solo JSON valido, zero testo extra:',
-    '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","durata_min":24,"esercizi":[{"id":"push_up","serie":"4 x 10","recupero":"60s"}]},{"nome":"SKILL","durata_min":21,"esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"}]},{"nome":"CORE","durata_min":15,"esercizi":[{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]}]}]}'
+    '=OUTPUT= Rispondi SOLO con JSON valido. Zero testo prima o dopo. Zero markdown. Array "giorni" deve avere ESATTAMENTE ' + form.days + ' elementi.',
+    '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","durata_min":24,"esercizi":[{"id":"push_up","serie":"4 x 10-12","recupero":"60s"},{"id":"dips","serie":"4 x 8","recupero":"90s"},{"id":"pike_push_up","serie":"3 x 8","recupero":"75s"},{"id":"planche_lean","serie":"4 x 12s","recupero":"75s"}]},{"nome":"SKILL","durata_min":21,"esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"},{"id":"pseudo_planche_push_up","serie":"3 x 8","recupero":"90s"},{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]},{"nome":"CORE","durata_min":15,"esercizi":[{"id":"hanging_leg_raise","serie":"4 x 10","recupero":"75s"},{"id":"arch_body","serie":"3 x 20s","recupero":"45s"},{"id":"side_plank","serie":"3 x 25s","recupero":"45s"}]}]}]}'
   ].filter(Boolean).join('\n');
   try {
     var resp = await fetch('/api/generate', {
