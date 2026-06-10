@@ -853,7 +853,7 @@ function doGenerate() {
   var iv = setInterval(function() {
     mi = (mi + 1) % loadMsgs.length;
     document.getElementById('loadSub').textContent = loadMsgs[mi];
-  }, 800);
+  }, 3000);
   setTimeout(function() {
     clearInterval(iv);
     try {
@@ -866,7 +866,7 @@ function doGenerate() {
       alert('Errore: ' + err.message);
       goTo('sGen');
     }
-  }, 1800);
+  }, 3000);
 }
 
 // ── Program view ───────────────────────────────────────
