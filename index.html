@@ -494,6 +494,43 @@ function scoreExercise(ex, context) {
   return score;
 }
 
+function selectForPhase(fase, n, context) {
+  var selected = [];
+
+  for (var i = 0; i < n; i++) {
+    var candidates = filterCandidates(fase, context);
+
+    // Escludi già selezionati in questa fase
+    candidates = candidates.filter(function(ex) {
+      return selected.indexOf(ex.id) < 0;
+    });
+
+    if (candidates.length === 0) break;
+
+    // Scorea e ordina
+    var scored = candidates.map(function(ex) {
+      return { ex: ex, score: scoreExercise(ex, context) };
+    });
+    scored.sort(function(a, b) { return b.score - a.score; });
+
+    var chosen = scored[0].ex;
+    selected.push(chosen.id);
+
+    // Aggiorna contesto sessione per la prossima iterazione
+    context.patternsUsedToday.push(chosen.pattern);
+    chosen.muscoli.forEach(function(m) {
+      context.musclesUsedToday.push(m);
+    });
+  }
+
+  // Restituisce oggetti esercizio completi con serie e recupero dal DB
+  return selected.map(function(id) {
+    var ex = EX[id];
+    return { id: id, serie: ex.sets_default, recupero: ex.recupero + 's' };
+  });
+}
+
+
 // ── Navigation ─────────────────────────────────────────
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
