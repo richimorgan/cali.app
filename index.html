@@ -314,7 +314,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 
 <div id="sLoad" class="screen">
   <div class="spin">&#8635;</div>
-  <div class="load-title">L'AI sta costruendo il programma</div>
+  <div class="load-title">ARRIVO AMO UN ATTIMO</div>
   <div class="load-sub" id="loadSub">Analisi dello storico...</div>
 </div>
 
@@ -847,21 +847,27 @@ function doGenerate() {
     'Preparando dolori muscolari personalizzati.',
     'Calcolando la tua sofferenza...'
   ];
-  document.getElementById('loadSub').textContent = loadMsgs[Math.floor(Math.random() * loadMsgs.length)];
+  var mi = Math.floor(Math.random() * loadMsgs.length);
+  document.getElementById('loadSub').textContent = loadMsgs[mi];
   goTo('sLoad');
+  var iv = setInterval(function() {
+    mi = (mi + 1) % loadMsgs.length;
+    document.getElementById('loadSub').textContent = loadMsgs[mi];
+  }, 800);
   setTimeout(function() {
+    clearInterval(iv);
     try {
       currentProg = buildProgram(form, progHistory);
       renderProg(currentProg);
       goTo('sProg');
     } catch(err) {
+      clearInterval(iv);
       console.error(err);
       alert('Errore: ' + err.message);
       goTo('sGen');
     }
-  }, 300);
+  }, 1800);
 }
-
 
 // ── Program view ───────────────────────────────────────
 var phColors = { POTENZIAMENTO: 'var(--gold)', SKILL: 'var(--purple)', CORE: 'var(--teal)' };
