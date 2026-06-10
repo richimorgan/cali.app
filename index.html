@@ -134,6 +134,8 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 
 /* LEVEL CHANGE */
 .lv-change-btn{background:none;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;text-decoration:underline;padding:4px 0}
+.del-btn{background:none;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;padding:4px 6px;border-radius:2px;line-height:1;float:right}
+.del-btn:active{color:var(--red)}
 .balance-wrap{display:flex;flex-direction:column;gap:10px}
 .balance-labels{display:flex;justify-content:space-between}
 .balance-lbl-l{font-size:9px;letter-spacing:2px;font-family:'JetBrains Mono',monospace;color:var(--gold)}
@@ -443,10 +445,21 @@ function renderHistList() {
     var focusTags = p.giorni.map(function(g){ return '<span class="tag tg">'+g.focus.substring(0,5).toUpperCase()+'</span>'; }).join('');
     var skillTag = (p.inputs && p.inputs.skill && p.inputs.skill !== 'Nessuno') ? '<span class="tag ts">'+p.inputs.skill.toUpperCase()+'</span>' : '';
     var timeTag = p.inputs ? '<span class="tag tm">'+p.inputs.time+' MIN</span>' : '';
-    return '<div class="hist-card" onclick="viewHist('+idx+')">' +
-      '<div class="hist-top"><span class="hist-date">'+date+'</span><span class="hist-days">'+p.giorni.length+' GIORNI</span></div>' +
-      '<div class="tags">'+focusTags+skillTag+timeTag+'</div></div>';
+    return '<div class="hist-card">' +
+      '<div class="hist-top" onclick="viewHist('+idx+')">' +
+        '<span class="hist-date">'+date+'</span>' +
+        '<span class="hist-days">'+p.giorni.length+' GIORNI</span>' +
+        '<button class="del-btn" onclick="event.stopPropagation();deleteHist('+idx+')">&#10005;</button>' +
+      '</div>' +
+      '<div class="tags" onclick="viewHist('+idx+')">'+focusTags+skillTag+timeTag+'</div></div>';
   }).join('');
+}
+
+async function deleteHist(idx) {
+  if (!confirm('Eliminare questo allenamento?')) return;
+  progHistory.splice(idx, 1);
+  await saveGist({ profile: profile, history: progHistory });
+  renderHistList();
 }
 
 // ── Generate form ──────────────────────────────────────
