@@ -260,11 +260,11 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
       </div>
     </div>
     <div class="fg">
-      <div class="fg-lbl">TEMPO DISPONIBILE</div>
+      <div class="fg-lbl">VOLUME SESSIONE</div>
       <div class="pills" id="timePills">
-        <button class="pill" style="color:var(--gold)" onclick="pickTime(45,this)">45 MIN</button>
-        <button class="pill on" style="color:var(--gold);border-color:var(--gold)" onclick="pickTime(60,this)">60 MIN</button>
-        <button class="pill" style="color:var(--gold)" onclick="pickTime(90,this)">90 MIN</button>
+        <button class="pill" style="color:var(--gold)" onclick="pickTime('leggero',this)">LEGGERO</button>
+        <button class="pill on" style="color:var(--gold);border-color:var(--gold)" onclick="pickTime('standard',this)">STANDARD</button>
+        <button class="pill" style="color:var(--gold)" onclick="pickTime('intenso',this)">INTENSO</button>
       </div>
     </div>
     <div class="fg">
@@ -318,7 +318,7 @@ var form = {
   skill: 'Nessuno',
   muscle: 'Nessuno',
   equipment: ['sbarra','parallele alte','parallele basse','sbarra bassa','terra','struttura','panchina'],
-  time: 60,
+  time: 'standard',
   balance: 50
 };
 var FNAME = 'calisthenics_data.json';
@@ -444,7 +444,7 @@ function renderHistList() {
     var date = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
     var focusTags = p.giorni.map(function(g){ return '<span class="tag tg">'+g.focus.substring(0,5).toUpperCase()+'</span>'; }).join('');
     var skillTag = (p.inputs && p.inputs.skill && p.inputs.skill !== 'Nessuno') ? '<span class="tag ts">'+p.inputs.skill.toUpperCase()+'</span>' : '';
-    var timeTag = p.inputs ? '<span class="tag tm">'+p.inputs.time+' MIN</span>' : '';
+    var timeTag = p.inputs ? '<span class="tag tm">'+( typeof p.inputs.time === 'string' ? p.inputs.time.toUpperCase() : p.inputs.time+' MIN')+'</span>' : '';
     return '<div class="hist-card">' +
       '<div class="hist-top" onclick="viewHist('+idx+')">' +
         '<span class="hist-date">'+date+'</span>' +
@@ -510,15 +510,21 @@ function pickTime(v, btn) {
   form.time = v;
   document.querySelectorAll('#timePills .pill').forEach(function(b){ b.classList.remove('on'); b.style.borderColor=''; });
   btn.classList.add('on'); btn.style.borderColor = 'var(--gold)';
+  updateBalance(form.balance); // refresh exercise counts
 }
 
-function calcBalance(val) {
-  var potEx, skillEx, coreEx;
-  if (val <= 25)      { potEx = 6; skillEx = 2; coreEx = 2; }
-  else if (val <= 40) { potEx = 5; skillEx = 3; coreEx = 2; }
-  else if (val <= 60) { potEx = 4; skillEx = 3; coreEx = 3; }
-  else if (val <= 75) { potEx = 3; skillEx = 4; coreEx = 3; }
-  else                { potEx = 2; skillEx = 5; coreEx = 2; }
+function calcBalance(val, volume) {
+  // Base counts per volume
+  var base = {
+    leggero:  { pot: [2,3,3,2,2], skill: [1,2,2,3,3], core: [2,2,2,2,1] },
+    standard: { pot: [5,4,4,3,2], skill: [2,3,3,4,4], core: [3,3,3,3,2] },
+    intenso:  { pot: [6,5,5,4,3], skill: [3,4,4,5,5], core: [4,4,4,4,3] }
+  };
+  // val 0-100 maps to index 0-4
+  var idx = val <= 20 ? 0 : val <= 40 ? 1 : val <= 60 ? 2 : val <= 80 ? 3 : 4;
+  var v = volume || 'standard';
+  var b = base[v] || base.standard;
+  var potEx = b.pot[idx], skillEx = b.skill[idx], coreEx = b.core[idx];
   var total = potEx + skillEx + coreEx;
   return {
     potEx: potEx, skillEx: skillEx, coreEx: coreEx,
@@ -530,7 +536,7 @@ function calcBalance(val) {
 
 function updateBalance(val) {
   form.balance = parseInt(val);
-  var b = calcBalance(form.balance);
+  var b = calcBalance(form.balance, form.time);
   document.getElementById('balanceInfo').textContent =
     'Pot ' + b.potEx + ' esercizi · Skill ' + b.skillEx + ' · Core ' + b.coreEx;
   document.getElementById('balanceSlider').style.background =
@@ -564,7 +570,7 @@ async function doGenerate() {
   });
   var avoidIds = recentIds.filter(function(v,i,a){ return a.indexOf(v)===i; }).slice(0,25);
 
-  var b = calcBalance(form.balance);
+  var b = calcBalance(form.balance, form.time);
 
   // Focus per giorno
   var focusLine = form.dayFocus.map(function(f,i){ return 'G'+(i+1)+'='+f; }).join(' | ');
@@ -605,7 +611,7 @@ async function doGenerate() {
     'REGOLA FASE (ASSOLUTA): in POTENZIAMENTO metti SOLO esercizi con fase=potenziamento. In SKILL SOLO fase=skill. In CORE SOLO fase=core.',
     'ATTREZZI: usa SOLO esercizi del DATABASE sotto (gia filtrato per attrezzi disponibili).',
     'LIVELLO: usa solo esercizi con lv <= ' + Math.min(5, profile.level+1) + '.',
-    'VOLUME: ogni giorno deve avere ESATTAMENTE ' + b.potEx + ' esercizi in POTENZIAMENTO, ESATTAMENTE ' + b.skillEx + ' in SKILL, ESATTAMENTE ' + b.coreEx + ' in CORE.',
+    'VOLUME (' + form.time.toUpperCase() + '): ogni giorno deve avere ESATTAMENTE ' + b.potEx + ' esercizi in POTENZIAMENTO, ESATTAMENTE ' + b.skillEx + ' in SKILL, ESATTAMENTE ' + b.coreEx + ' in CORE. Calibra serie e reps di conseguenza: LEGGERO=3 serie reps basse, STANDARD=3-4 serie reps medie, INTENSO=4-5 serie reps alte.',
     'EVITA (esercizi recenti): ' + (avoidIds.join(', ')||'nessuno') + '.',
     '',
     skillSection,
@@ -617,7 +623,7 @@ async function doGenerate() {
     promptDB,
     '',
     '=OUTPUT= Rispondi SOLO con JSON valido. Zero testo prima o dopo. Zero markdown. Array "giorni" deve avere ESATTAMENTE ' + form.days + ' elementi.',
-    '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","durata_min":24,"esercizi":[{"id":"push_up","serie":"4 x 10-12","recupero":"60s"},{"id":"dips","serie":"4 x 8","recupero":"90s"},{"id":"pike_push_up","serie":"3 x 8","recupero":"75s"},{"id":"planche_lean","serie":"4 x 12s","recupero":"75s"}]},{"nome":"SKILL","durata_min":21,"esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"},{"id":"pseudo_planche_push_up","serie":"3 x 8","recupero":"90s"},{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]},{"nome":"CORE","durata_min":15,"esercizi":[{"id":"hanging_leg_raise","serie":"4 x 10","recupero":"75s"},{"id":"arch_body","serie":"3 x 20s","recupero":"45s"},{"id":"side_plank","serie":"3 x 25s","recupero":"45s"}]}]}]}'
+    '{"titolo":"string","giorni":[{"label":"GIORNO 1","focus":"Spinta","fasi":[{"nome":"POTENZIAMENTO","esercizi":[{"id":"push_up","serie":"4 x 10-12","recupero":"60s"},{"id":"dips","serie":"4 x 8","recupero":"90s"},{"id":"pike_push_up","serie":"3 x 8","recupero":"75s"},{"id":"planche_lean","serie":"4 x 12s","recupero":"75s"}]},{"nome":"SKILL","esercizi":[{"id":"tuck_planche","serie":"4 x 10s","recupero":"90s"},{"id":"pseudo_planche_push_up","serie":"3 x 8","recupero":"90s"},{"id":"hollow_body","serie":"3 x 25s","recupero":"45s"}]},{"nome":"CORE","esercizi":[{"id":"hanging_leg_raise","serie":"4 x 10","recupero":"75s"},{"id":"arch_body","serie":"3 x 20s","recupero":"45s"},{"id":"side_plank","serie":"3 x 25s","recupero":"45s"}]}]}]}'
   ].filter(Boolean).join('\n');
   try {
     var resp = await fetch('/api/generate', {
@@ -651,7 +657,7 @@ var phColors = { POTENZIAMENTO: 'var(--gold)', SKILL: 'var(--purple)', CORE: 'va
 function renderProg(prog) {
   document.getElementById('progTitle').textContent = prog.titolo || 'Programma';
   var th = '<span class="tag tg">' + prog.giorni.length + ' GIORNI</span>';
-  th += '<span class="tag tg">' + form.time + ' MIN</span>';
+  th += '<span class="tag tg">' + form.time.toUpperCase() + '</span>';
   if (form.skill !== 'Nessuno') th += '<span class="tag ts">' + form.skill.toUpperCase() + '</span>';
   if (form.muscle !== 'Nessuno') th += '<span class="tag tm">' + form.muscle.toUpperCase() + '</span>';
   document.getElementById('progTags').innerHTML = th;
@@ -691,7 +697,7 @@ function renderDay(i) {
     }).join('');
     return '<div class="phase-blk">' +
       '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span>' +
-      '<span class="phase-dur">'+fase.durata_min+' MIN</span></div>' +
+      '</div>' +
       exHtml + '</div>';
   }).join('');
 }
