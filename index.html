@@ -703,6 +703,11 @@ async function init() {
 
 async function doLogout() {
   await sb.auth.signOut();
+  var btn = document.getElementById('loginBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'ENTRA / REGISTRATI'; }
+  document.getElementById('tkInput').value = '';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('tkErr').style.display = 'none';
   goTo('sToken');
 }
 
