@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -181,17 +182,12 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 <canvas id="wave-canvas"></canvas>
 <div id="sToken" class="screen">
   <div class="card">
-    <div class="card-title">Connetti GitHub</div>
-    <div class="card-sub">Il token salva profilo e storico su GitHub Gist. Resta solo sul tuo dispositivo.</div>
-    <div class="steps">
-      1. github.com &rarr; Settings<br>
-      2. Developer settings &rarr; Tokens (classic)<br>
-      3. Generate new token &rarr; spunta "gist"<br>
-      4. Copia e incolla qui sotto
-    </div>
-    <input type="password" id="tkInput" placeholder="ghp_xxxxxxxxxxxx">
-    <button class="btn-gold" onclick="doSaveToken()">CONNETTI</button>
-    <div class="err-msg" id="tkErr">Token non valido o errore di rete.</div>
+    <div class="card-title">Accedi</div>
+    <div class="card-sub">Email e password per salvare profilo e storico su cloud. Prima volta? Ti registri automaticamente.</div>
+    <input type="text"     id="tkInput" placeholder="email" autocomplete="email">
+    <input type="password" id="pwInput" placeholder="password (min 6 caratteri)" autocomplete="current-password">
+    <button class="btn-gold" id="loginBtn" onclick="doLogin()">ENTRA / REGISTRATI</button>
+    <div class="err-msg" id="tkErr"></div>
   </div>
 </div>
 
@@ -372,11 +368,14 @@ var DB_RAW = {"esercizi": [{"id": "push_up", "name": "Push-up", "categoria": "sp
 var EX = {};
 DB_RAW.esercizi.forEach(function(e){ EX[e.id] = e; });
 
+// ── Supabase ───────────────────────────────────────────
+var SUPABASE_URL = https://gspynnoiolfxvdtunlox.supabase.co;
+var SUPABASE_KEY = sb_publishable_JAsvGDHZZQXJwVyHnPjwGw_InKONsxz;
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ── State ──────────────────────────────────────────────
 var profile = null;
 var progHistory = [];
-var ghToken = null;
-var gistId = null;
 var currentProg = null;
 var currentDay = 0;
 var form = {
@@ -388,7 +387,6 @@ var form = {
   time: 'standard',
   balance: 50
 };
-var FNAME = 'calisthenics_data.json';
 // ── Algoritmo deterministico ───────────────────────────
 
 var SKILL_ID_MAP = {
@@ -622,81 +620,84 @@ function goTo(id) {
   if (id === 'sGen') renderDayCfg();
 }
 
-// ── GitHub Gist ────────────────────────────────────────
-async function loadGist() {
-  if (!ghToken) return null;
-  try {
-    var ts = '?t=' + Date.now();
-    var r = await fetch('https://api.github.com/gists' + ts, {
-      headers: { 'Authorization': 'token ' + ghToken, 'If-None-Match': '' }
-    });
-    var list = await r.json();
-    var found = list.find(function(g){ return g.files && g.files[FNAME]; });
-    if (!found) return null;
-    gistId = found.id;
-    var r2 = await fetch('https://api.github.com/gists/' + gistId + ts, {
-      headers: { 'Authorization': 'token ' + ghToken, 'If-None-Match': '' }
-    });
-    var g = await r2.json();
-    return JSON.parse(g.files[FNAME].content);
-  } catch(e) { return null; }
-}
-
-async function saveGist(data) {
-  if (!ghToken) return;
-  var body = { files: {} };
-  body.files[FNAME] = { content: JSON.stringify(data) };
-  try {
-    if (gistId) {
-      await fetch('https://api.github.com/gists/' + gistId, {
-        method: 'PATCH',
-        headers: { 'Authorization': 'token ' + ghToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-    } else {
-      body.description = 'Calisthenics AI'; body.public = false;
-      var r = await fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers: { 'Authorization': 'token ' + ghToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      gistId = (await r.json()).id;
+// ── Auth ───────────────────────────────────────────────
+async function doLogin() {
+  var email = document.getElementById('tkInput').value.trim();
+  var pw    = document.getElementById('pwInput').value.trim();
+  var err   = document.getElementById('tkErr');
+  var btn   = document.getElementById('loginBtn');
+  err.style.display = 'none';
+  if (!email || !pw) { err.textContent = 'Inserisci email e password.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = '...';
+  var res = await sb.auth.signInWithPassword({ email: email, password: pw });
+  if (res.error) {
+    // Utente non esiste → prova signup
+    var res2 = await sb.auth.signUp({ email: email, password: pw });
+    if (res2.error) {
+      err.textContent = res2.error.message;
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'ENTRA / REGISTRATI';
+      return;
     }
-  } catch(e) { console.error(e); }
+  }
+  await afterLogin();
 }
 
-// ── Init ───────────────────────────────────────────────
-async function init() {
-  ghToken = localStorage.getItem('gh_token');
-  if (!ghToken) { goTo('sToken'); return; }
+async function afterLogin() {
   goTo('sLoad');
   document.getElementById('loadSub').textContent = 'Caricamento dati...';
-  var data = await loadGist();
-  if (data) {
-    profile = data.profile;
-    progHistory = Array.isArray(data.history) ? data.history : [];
+  var userRes = await sb.auth.getUser();
+  var user = userRes.data && userRes.data.user;
+  if (!user) { goTo('sToken'); return; }
+  // Carica profile
+  var profRes = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if (profRes.data) {
+    profile = { level: profRes.data.level, created: profRes.data.created_at };
   }
+  // Carica storico (ultimi 10, dal più vecchio al più recente)
+  var wRes = await sb.from('workouts')
+    .select('*').eq('user_id', user.id)
+    .order('saved_at', { ascending: false }).limit(10);
+  progHistory = ((wRes.data) || []).map(function(r) {
+    return { id: r.id, titolo: r.titolo, giorni: r.giorni, inputs: r.inputs, savedAt: r.saved_at };
+  }).reverse();
   if (!profile) { goTo('sSetup'); return; }
   renderHome();
   goTo('sHome');
 }
 
-async function doSaveToken() {
-  var t = document.getElementById('tkInput').value.trim();
-  if (!t) return;
-  var err = document.getElementById('tkErr');
-  try {
-    var r = await fetch('https://api.github.com/user', { headers: { 'Authorization': 'token ' + t } });
-    if (!r.ok) throw new Error('bad');
-    localStorage.setItem('gh_token', t);
-    ghToken = t;
-    err.style.display = 'none';
-    goTo('sLoad');
-    document.getElementById('loadSub').textContent = 'Caricamento dati...';
-    var data = await loadGist();
-    if (data) { profile = data.profile; progHistory = Array.isArray(data.history) ? data.history : []; }
-    if (!profile) { goTo('sSetup'); } else { renderHome(); goTo('sHome'); }
-  } catch(e) { err.style.display = 'block'; }
+// ── Storage ────────────────────────────────────────────
+async function saveProfile(level) {
+  var userRes = await sb.auth.getUser();
+  var user = userRes.data && userRes.data.user;
+  if (!user) return;
+  await sb.from('profiles').upsert({ id: user.id, level: level });
+}
+
+async function saveWorkout(prog) {
+  var userRes = await sb.auth.getUser();
+  var user = userRes.data && userRes.data.user;
+  if (!user) return null;
+  var res = await sb.from('workouts').insert({
+    user_id: user.id,
+    titolo:  prog.titolo,
+    giorni:  prog.giorni,
+    inputs:  prog.inputs,
+    saved_at: prog.savedAt
+  }).select().single();
+  return res.data;
+}
+
+async function deleteWorkout(id) {
+  await sb.from('workouts').delete().eq('id', id);
+}
+
+// ── Init ───────────────────────────────────────────────
+async function init() {
+  var sessRes = await sb.auth.getSession();
+  var session = sessRes.data && sessRes.data.session;
+  if (!session) { goTo('sToken'); return; }
+  await afterLogin();
 }
 
 // ── Setup ──────────────────────────────────────────────
@@ -712,7 +713,7 @@ async function doSaveProfile() {
   if (!selLevel) return;
   profile = { level: selLevel, created: new Date().toISOString() };
   progHistory = Array.isArray(progHistory) ? progHistory : [];
-  await saveGist({ profile: profile, history: progHistory });
+  await saveProfile(selLevel);
   renderHome();
   goTo('sHome');
 }
@@ -748,8 +749,9 @@ function renderHistList() {
 
 async function deleteHist(idx) {
   if (!confirm('Eliminare questo allenamento?')) return;
+  var prog = progHistory[idx];
+  if (prog && prog.id) await deleteWorkout(prog.id);
   progHistory.splice(idx, 1);
-  await saveGist({ profile: profile, history: progHistory });
   renderHistList();
 }
 
@@ -935,9 +937,10 @@ async function doSaveProgram() {
   var btn = document.getElementById('progSaveBtn');
   btn.disabled = true; btn.textContent = '...';
   currentProg.savedAt = new Date().toISOString();
-  progHistory.push(currentProg);
+  var saved = await saveWorkout(currentProg);
+  if (saved) currentProg.id = saved.id;
+  progHistory.push(JSON.parse(JSON.stringify(currentProg)));
   if (progHistory.length > 10) progHistory.shift();
-  await saveGist({ profile: profile, history: progHistory });
   btn.textContent = 'SALVATO';
   renderHistList();
 }
