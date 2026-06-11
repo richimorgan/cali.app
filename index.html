@@ -701,6 +701,11 @@ async function init() {
   await afterLogin();
 }
 
+async function doLogout() {
+  await sb.auth.signOut();
+  goTo('sToken');
+}
+
 // ── Setup ──────────────────────────────────────────────
 var selLevel = null;
 function pickLevel(n, btn) {
