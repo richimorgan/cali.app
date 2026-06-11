@@ -170,9 +170,14 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .lib-prog-lbl{font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px}
 .lib-prog-row{display:flex;gap:6px;flex-wrap:wrap}
 .lib-count{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:8px 0}
+#wave-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.screen{position:relative;z-index:1}
+#sHome .hist-card{background:rgba(22,22,24,0.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#sHome .act-btn:not(.act-primary){background:rgba(22,22,24,0.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 </style>
 </head>
 <body>
+<canvas id="wave-canvas"></canvas>
 <div id="sToken" class="screen">
   <div class="card">
     <div class="card-title">Connetti GitHub</div>
@@ -1026,6 +1031,56 @@ document.addEventListener('DOMContentLoaded', function(){ renderDayCfg(); init()
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(){});
 }
+
+(function(){
+  var canvas = document.getElementById('wave-canvas');
+  var ctx = canvas.getContext('2d');
+  var W, H;
+  function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  var t = 0;
+  var SPACING = 38;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var cols = Math.ceil(W/SPACING)+2;
+    var rows = Math.ceil(H/SPACING)+2;
+    var pts = [];
+    for(var r=0;r<rows;r++){
+      pts[r]=[];
+      for(var c=0;c<cols;c++){
+        var bx=(c-1)*SPACING, by=(r-1)*SPACING;
+        var d1=Math.sin(bx*0.018+t*0.7)*Math.cos(by*0.012+t*0.4);
+        var d2=Math.sin(bx*0.009+by*0.014+t*0.5)*0.5;
+        pts[r][c]={x:bx+(d1+d2)*8, y:by+Math.sin(by*0.015+bx*0.01+t*0.6)*8};
+      }
+    }
+    var gold='rgba(212,168,67,';
+    for(var r=0;r<rows;r++){
+      for(var c=0;c<cols-1;c++){
+        ctx.beginPath();ctx.moveTo(pts[r][c].x,pts[r][c].y);ctx.lineTo(pts[r][c+1].x,pts[r][c+1].y);
+        ctx.strokeStyle=gold+(r%2===0?'0.07':'0.04')+')';ctx.lineWidth=0.6;ctx.stroke();
+      }
+    }
+    for(var c=0;c<cols;c++){
+      for(var r=0;r<rows-1;r++){
+        ctx.beginPath();ctx.moveTo(pts[r][c].x,pts[r][c].y);ctx.lineTo(pts[r+1][c].x,pts[r+1][c].y);
+        ctx.strokeStyle=gold+(c%2===0?'0.07':'0.04')+')';ctx.lineWidth=0.6;ctx.stroke();
+      }
+    }
+    for(var r=0;r<rows;r+=2){
+      for(var c=0;c<cols;c+=2){
+        var p=pts[r][c];
+        var ph=Math.sin(p.x*0.04+t*1.1)*0.5+0.5;
+        ctx.beginPath();ctx.arc(p.x,p.y,0.8+ph*1.0,0,Math.PI*2);
+        ctx.fillStyle=gold+'0.5)';ctx.fill();
+      }
+    }
+    t+=0.008;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 
 </script>
 </body>
