@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cali Breaker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0E0E0F;--surface:#161618;--border:#28282D;
+  --text:#F0EDE6;--muted:#666;
+  --gold:#D4A843;--teal:#3ABFAA;--purple:#9B72CF;
+}
+html,body{
+  background:var(--bg);color:var(--text);
+  font-family:'Syne',sans-serif;
+  height:100%;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;
+  touch-action:none;
+}
+#topbar{
+  width:100%;max-width:440px;
+  padding:14px 20px 10px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;
+}
+#gameTitle{
+  font-size:10px;letter-spacing:4px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+#scoreArea{
+  display:flex;align-items:center;gap:16px;
+}
+#scoreLabel{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--muted);letter-spacing:2px;
+}
+#scoreVal{
+  font-family:'JetBrains Mono',monospace;
+  font-size:16px;font-weight:500;
+  color:var(--gold);
+  min-width:48px;text-align:right;
+}
+#canvas{
+  display:block;
+  touch-action:none;
+  cursor:none;
+}
+#msgArea{
+  height:32px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#msg{
+  font-size:13px;font-weight:700;
+  letter-spacing:1px;
+  color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+}
+#startBtn{
+  display:none;
+  margin:10px 0 0;
+  background:var(--gold);
+  color:#0E0E0F;
+  border:none;
+  padding:13px 36px;
+  border-radius:4px;
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:13px;
+  letter-spacing:2px;
+  cursor:pointer;
+  flex-shrink:0;
+}
+#startBtn:active{opacity:.85}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span id="gameTitle">CALI BREAKER</span>
+  <div id="scoreArea">
+    <span id="scoreLabel">SCORE</span>
+    <span id="scoreVal">0</span>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="msgArea"><span id="msg"></span></div>
+<button id="startBtn" onclick="arkStart()">GIOCA</button>
+
+<script>
+var canvas = document.getElementById('canvas');
+var ctx    = canvas.getContext('2d');
+var W, H;
+
+// ── Layout ──────────────────────────────────────────────
+function resize() {
+  var maxW = Math.min(window.innerWidth, 440);
+  var usedH = document.getElementById('topbar').offsetHeight
+            + document.getElementById('msgArea').offsetHeight
+            + 60; // btn + margins
+  W = canvas.width  = maxW - 32;
+  H = canvas.height = Math.min(window.innerHeight - usedH, 560);
+}
+resize();
+window.addEventListener('resize', function(){ resize(); if(!running) drawStatic(); });
+
+// ── Palette ─────────────────────────────────────────────
+var BRICK_COLORS = ['#9B72CF','#9B72CF','#3ABFAA','#3ABFAA','#D4A843'];
+
+// ── State ────────────────────────────────────────────────
+var padX, padW, padH = 10;
+var ballX, ballY, ballVX, ballVY, ballR;
+var bricks = [];
+var score = 0, lives = 3;
+var running = false, animId = null;
+var ROWS = 5, COLS = 7;
+
+// ── Init ─────────────────────────────────────────────────
+function arkInit() {
+  score = 0;
+  lives = 3;
+  document.getElementById('scoreVal').textContent = '0';
+  document.getElementById('msg').textContent = '';
+  document.getElementById('startBtn').style.display = 'block';
+  document.getElementById('startBtn').textContent = 'GIOCA';
+  running = false;
+  padW = Math.min(72, W * 0.22);
+  padX = (W - padW) / 2;
+  ballR = Math.max(6, W * 0.016);
+  ballX = W / 2;
+  ballY = H - 55;
+  ballVX = 0; ballVY = 0;
+  buildBricks();
+  drawStatic();
+}
+
+function buildBricks() {
+  bricks = [];
+  var gap = 4;
+  var bW  = Math.floor((W - gap * (COLS + 1)) / COLS);
+  var bH  = 15;
+  var offX = Math.floor((W - (bW * COLS + gap * (COLS - 1))) / 2);
+  var offY = 36;
+  for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+      bricks.push({
+        x: offX + c * (bW + gap),
+        y: offY + r * (bH + 5),
+        w: bW, h: bH,
+        alive: true,
+        color: BRICK_COLORS[r]
+      });
+    }
+  }
+}
+
+// ── Start / restart ──────────────────────────────────────
+function arkStart() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('msg').textContent = '';
+  buildBricks();
+  padW = Math.min(72, W * 0.22);
+  padX = (W - padW) / 2;
+  ballR = Math.max(6, W * 0.016);
+  ballX = W / 2;
+  ballY = H - 55;
+  var spd = W < 340 ? 3.6 : 4.4;
+  var ang = (Math.random() * 50 + 65) * Math.PI / 180;
+  ballVX = Math.cos(ang) * spd * (Math.random() > .5 ? 1 : -1);
+  ballVY = -Math.sin(ang) * spd;
+  running = true;
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+// ── Game loop ─────────────────────────────────────────────
+function loop() {
+  if (!running) return;
+  update();
+  draw();
+  animId = requestAnimationFrame(loop);
+}
+
+function update() {
+  ballX += ballVX;
+  ballY += ballVY;
+
+  // pareti
+  if (ballX - ballR < 0)  { ballX = ballR;    ballVX = Math.abs(ballVX); }
+  if (ballX + ballR > W)  { ballX = W-ballR;  ballVX = -Math.abs(ballVX); }
+  if (ballY - ballR < 0)  { ballY = ballR;    ballVY = Math.abs(ballVY); }
+
+  // paddle
+  var padY = H - 28 - padH;
+  if (ballVY > 0 &&
+      ballY + ballR >= padY &&
+      ballY + ballR <= padY + padH + 4 &&
+      ballX >= padX - 4 &&
+      ballX <= padX + padW + 4) {
+    var hit = (ballX - padX) / padW; // 0..1
+    var ang = (hit * 140 + 20) * Math.PI / 180;
+    var spd = Math.sqrt(ballVX*ballVX + ballVY*ballVY);
+    ballVX = Math.cos(ang) * spd;
+    ballVY = -Math.abs(Math.sin(ang) * spd);
+    ballY  = padY - ballR;
+  }
+
+  // fondo
+  if (ballY - ballR > H) {
+    lives--;
+    if (lives <= 0) { gameOver(); return; }
+    ballX = W / 2; ballY = H - 55;
+    var spd2 = W < 340 ? 3.6 : 4.4;
+    var ang2 = (Math.random() * 50 + 65) * Math.PI / 180;
+    ballVX = Math.cos(ang2) * spd2 * (Math.random() > .5 ? 1 : -1);
+    ballVY = -Math.abs(Math.sin(ang2) * spd2);
+  }
+
+  // mattoncini
+  var anyAlive = false;
+  for (var i = 0; i < bricks.length; i++) {
+    var b = bricks[i];
+    if (!b.alive) continue;
+    anyAlive = true;
+    if (ballX + ballR > b.x && ballX - ballR < b.x + b.w &&
+        ballY + ballR > b.y && ballY - ballR < b.y + b.h) {
+      b.alive = false;
+      score += 10;
+      document.getElementById('scoreVal').textContent = score;
+      var oL = (ballX + ballR) - b.x;
+      var oR = (b.x + b.w) - (ballX - ballR);
+      var oT = (ballY + ballR) - b.y;
+      var oB = (b.y + b.h) - (ballY - ballR);
+      var mn = Math.min(oL, oR, oT, oB);
+      if (mn === oL || mn === oR) ballVX = -ballVX;
+      else ballVY = -ballVY;
+    }
+  }
+  if (!anyAlive) { win(); }
+}
+
+// ── Draw ──────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBricks();
+  drawPaddle();
+  drawBall();
+  drawLives();
+}
+
+function drawStatic() {
+  ctx.clearRect(0, 0, W, H);
+  drawBricks();
+  drawPaddle();
+  // disegna la palla ferma
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+  ctx.fillStyle = '#F0EDE6';
+  ctx.fill();
+  drawLives();
+}
+
+function drawBricks() {
+  for (var i = 0; i < bricks.length; i++) {
+    var b = bricks[i];
+    if (!b.alive) continue;
+    // corpo
+    ctx.fillStyle = b.color;
+    roundRect(ctx, b.x, b.y, b.w, b.h, 3);
+    ctx.fill();
+    // highlight top
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    roundRect(ctx, b.x+2, b.y+2, b.w-4, 4, 2);
+    ctx.fill();
+    // shadow bottom
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    roundRect(ctx, b.x+2, b.y+b.h-4, b.w-4, 3, 2);
+    ctx.fill();
+  }
+}
+
+function drawPaddle() {
+  var padY = H - 28 - padH;
+  // glow sottile
+  ctx.shadowColor = '#3ABFAA';
+  ctx.shadowBlur  = 8;
+  ctx.fillStyle   = '#3ABFAA';
+  roundRect(ctx, padX, padY, padW, padH, 5);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  roundRect(ctx, padX+3, padY+2, padW-6, 3, 2);
+  ctx.fill();
+}
+
+function drawBall() {
+  ctx.shadowColor = '#F0EDE6';
+  ctx.shadowBlur  = 6;
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+  ctx.fillStyle = '#F0EDE6';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawLives() {
+  for (var l = 0; l < lives; l++) {
+    ctx.beginPath();
+    ctx.arc(ballR + l * (ballR*2+5), H - ballR - 4, ballR * 0.75, 0, Math.PI*2);
+    ctx.fillStyle = '#3ABFAA';
+    ctx.fill();
+  }
+}
+
+// ── Fine partita ──────────────────────────────────────────
+function gameOver() {
+  running = false;
+  document.getElementById('msg').textContent = 'game over — ' + score + ' pt';
+  var btn = document.getElementById('startBtn');
+  btn.textContent = 'RIPROVA';
+  btn.style.display = 'block';
+  draw();
+}
+
+function win() {
+  running = false;
+  document.getElementById('msg').textContent = '🏆 vinto! — ' + score + ' pt';
+  var btn = document.getElementById('startBtn');
+  btn.textContent = 'ANCORA';
+  btn.style.display = 'block';
+  draw();
+}
+
+// ── Input ─────────────────────────────────────────────────
+canvas.addEventListener('mousemove', function(e) {
+  var r = canvas.getBoundingClientRect();
+  padX = Math.max(0, Math.min(W - padW, e.clientX - r.left - padW/2));
+});
+canvas.addEventListener('touchstart',  onTouch, { passive: false });
+canvas.addEventListener('touchmove',   onTouch, { passive: false });
+function onTouch(e) {
+  e.preventDefault();
+  var r = canvas.getBoundingClientRect();
+  padX = Math.max(0, Math.min(W - padW, e.touches[0].clientX - r.left - padW/2));
+}
+
+// ── Utility ───────────────────────────────────────────────
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r, y);
+  c.quadraticCurveTo(x+w, y, x+w, y+r);
+  c.lineTo(x+w, y+h-r);
+  c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  c.lineTo(x+r, y+h);
+  c.quadraticCurveTo(x, y+h, x, y+h-r);
+  c.lineTo(x, y+r);
+  c.quadraticCurveTo(x, y, x+r, y);
+  c.closePath();
+}
+
+// ── Boot ──────────────────────────────────────────────────
+arkInit();
+</script>
+</body>
+</html>
