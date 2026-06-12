@@ -370,6 +370,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 <div id="sProg" class="screen">
   <div class="prog-hd">
     <button class="prog-back" onclick="goTo('sHome')">&larr; HOME</button>
+    <button class="prog-back" id="progRecalcBtn" onclick="doRecalc()">&#8635; RICALCOLA</button>
     <button class="prog-save" id="progSaveBtn" onclick="doSaveProgram()">SALVA</button>
   </div>
   <div class="prog-meta">
@@ -976,6 +977,7 @@ function renderProg(prog) {
   progSaved = false;
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
+  document.getElementById('progRecalcBtn').style.display = '';
 }
 
 function switchDay(i) {
@@ -1035,6 +1037,12 @@ function renderDay(i) {
 function togEx(card) {
   card.querySelector('.ex-desc').classList.toggle('open');
   card.querySelector('.ex-chv').classList.toggle('open');
+}
+
+function doRecalc() {
+  var historyWithCurrent = progHistory.concat(currentProg ? [currentProg] : []);
+  currentProg = buildProgram(form, historyWithCurrent);
+  renderProg(currentProg);
 }
 
 function saveSerieEdit(input, dayIdx, faseNome, exIdx) {
@@ -1203,7 +1211,8 @@ async function doSaveProgram() {
   if (progHistory.length > 10) progHistory.shift();
   progSaved = true;
   btn.textContent = 'SALVATO';
-  renderDay(currentDay); // rimuove i bottoni swap
+  document.getElementById('progRecalcBtn').style.display = 'none';
+  renderDay(currentDay);
   renderHistList();
 }
 
@@ -1214,6 +1223,7 @@ function viewHist(i) {
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
+  document.getElementById('progRecalcBtn').style.display = 'none';
   goTo('sProg');
 }
 
