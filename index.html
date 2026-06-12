@@ -831,8 +831,10 @@ function renderHistList() {
       '<div class="hist-top" onclick="viewHist('+idx+')">' +
         '<span class="hist-date">'+date+'</span>' +
         '<span class="hist-days">'+p.giorni.length+' GIORNI</span>' +
-        '<button class="del-btn" onclick="event.stopPropagation();dupHist('+idx+')" title="Duplica" style="margin-right:2px">⧉</button>' +
-        '<button class="del-btn" onclick="event.stopPropagation();deleteHist('+idx+')">&#10005;</button>' +
+        '<span style="display:flex;gap:2px">' +
+          '<button class="del-btn" onclick="event.stopPropagation();dupHist('+idx+')" title="Duplica">⧉</button>' +
+          '<button class="del-btn" onclick="event.stopPropagation();deleteHist('+idx+')">&#10005;</button>' +
+        '</span>' +
       '</div>' +
       '<div class="tags" onclick="viewHist('+idx+')">'+focusTags+skillTag+timeTag+'</div></div>';
   }).join('');
@@ -1030,7 +1032,7 @@ function renderDay(i) {
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
     var col = phColors[fase.nome] || 'var(--gold)';
     var isCore = fase.nome === 'CORE';
-    var giri = giriMap[volume] || 3;
+    var giri = fase.giri || giriMap[volume] || 3;
     var exHtml = fase.esercizi.map(function(ex, ei) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
@@ -1071,7 +1073,12 @@ function renderDay(i) {
         '</div>'
       : '';
     var phaseHeader = isCore
-      ? '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">CORE</span><span class="phase-dur" style="color:'+col+'">'+giri+' GIRI</span></div>'
+      ? (function() {
+          var giriEl = canEdit
+            ? '<input class="ex-sets-input" value="'+giri+'" onclick="event.stopPropagation()" onblur="saveGiriEdit(this,'+i+')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+';width:24px;text-align:center"> <span style="font-size:9px;font-family:\'JetBrains Mono\',monospace;color:'+col+'">GIRI</span>'
+            : giri+' GIRI';
+          return '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">CORE</span><span class="phase-dur" style="color:'+col+'">'+giriEl+'</span></div>';
+        })()
       : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span></div>';
     return '<div class="phase-blk">' + phaseHeader + exHtml + addRow + '</div>';
   }).join('');
@@ -1170,6 +1177,20 @@ function saveSerieEdit(input, dayIdx, faseNome, exIdx) {
     .find(function(f){ return f.nome === faseNome; });
   if (!fase) return;
   fase.esercizi[exIdx].serie = val;
+  if (progSaved && currentProg.id) {
+    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
+    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
+    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
+  }
+}
+
+function saveGiriEdit(input, dayIdx) {
+  var val = parseInt(input.value.trim());
+  if (!val || val < 1) { renderDay(dayIdx); return; }
+  var fase = currentProg.giorni[dayIdx].fasi
+    .find(function(f){ return f.nome === 'CORE'; });
+  if (!fase) return;
+  fase.giri = val;
   if (progSaved && currentProg.id) {
     sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
     var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
