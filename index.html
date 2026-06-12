@@ -1004,7 +1004,7 @@ function switchDay(i) {
 
 function renderDay(i) {
   var g = currentProg.giorni[i];
-  var canEdit = !progSaved;
+  var canEdit = true;
   var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
   var giriMap = { leggero: 2, standard: 3, intenso: 4 };
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
@@ -1065,16 +1065,25 @@ function saveSerieEdit(input, dayIdx, faseNome, exIdx) {
   var fase = currentProg.giorni[dayIdx].fasi
     .find(function(f){ return f.nome === faseNome; });
   if (!fase) return;
-  // Per CORE: il valore mostrato non ha il prefisso serie, ma salviamo comunque il testo as-is
   fase.esercizi[exIdx].serie = val;
+  if (progSaved && currentProg.id) {
+    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
+    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
+    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
+  }
 }
 
 function removeEx(dayIdx, faseNome, exIdx) {
   var fase = currentProg.giorni[dayIdx].fasi
     .find(function(f){ return f.nome === faseNome; });
-  if (!fase || fase.esercizi.length <= 1) return; // non rimuovere l'ultimo
+  if (!fase || fase.esercizi.length <= 1) return;
   fase.esercizi.splice(exIdx, 1);
   renderDay(dayIdx);
+  if (progSaved && currentProg.id) {
+    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
+    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
+    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
+  }
 }
 
 function openAdd(dayIdx, faseNome) {
