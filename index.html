@@ -813,6 +813,7 @@ function renderHistList() {
       '<div class="hist-top" onclick="viewHist('+idx+')">' +
         '<span class="hist-date">'+date+'</span>' +
         '<span class="hist-days">'+p.giorni.length+' GIORNI</span>' +
+        '<button class="del-btn" onclick="event.stopPropagation();dupHist('+idx+')" title="Duplica" style="margin-right:2px">⧉</button>' +
         '<button class="del-btn" onclick="event.stopPropagation();deleteHist('+idx+')">&#10005;</button>' +
       '</div>' +
       '<div class="tags" onclick="viewHist('+idx+')">'+focusTags+skillTag+timeTag+'</div></div>';
@@ -825,6 +826,21 @@ async function deleteHist(idx) {
   if (prog && prog.id) await deleteWorkout(prog.id);
   progHistory.splice(idx, 1);
   renderHistList();
+}
+
+function dupHist(idx) {
+  var prog = progHistory[idx];
+  // Copia profonda, rimuovi id e savedAt → trattato come nuovo programma non salvato
+  currentProg = JSON.parse(JSON.stringify(prog));
+  delete currentProg.id;
+  delete currentProg.savedAt;
+  if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
+  progSaved = false;
+  renderProg(currentProg);
+  document.getElementById('progSaveBtn').disabled = false;
+  document.getElementById('progSaveBtn').textContent = 'SALVA';
+  document.getElementById('progRecalcBtn').style.display = '';
+  goTo('sProg');
 }
 
 // ── Generate form ──────────────────────────────────────
@@ -988,7 +1004,7 @@ function switchDay(i) {
 
 function renderDay(i) {
   var g = currentProg.giorni[i];
-  var canSwap = !progSaved;
+  var canEdit = !progSaved;
   var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
   var giriMap = { leggero: 2, standard: 3, intenso: 4 };
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
@@ -999,13 +1015,11 @@ function renderDay(i) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
       var displaySerie = isCore ? ex.serie.replace(/^\d+x/, '') : ex.serie;
-      var swapBtn = canSwap
-        ? '<button class="swap-btn" title="Sostituisci" onclick="event.stopPropagation();openSwap('+i+',\''+fase.nome+'\','+ei+')">⇄</button>'
-        : '';
-      var removeBtn = canSwap
+      var swapBtn = '<button class="swap-btn" title="Sostituisci" onclick="event.stopPropagation();openSwap('+i+',\''+fase.nome+'\','+ei+')">⇄</button>';
+      var removeBtn = canEdit
         ? '<button class="ex-remove-btn" title="Rimuovi" onclick="event.stopPropagation();removeEx('+i+',\''+fase.nome+'\','+ei+')">✕</button>'
         : '';
-      var serieEl = canSwap
+      var serieEl = canEdit
         ? '<input class="ex-sets-input" value="'+displaySerie+'" onclick="event.stopPropagation()" onblur="saveSerieEdit(this,'+i+',\''+fase.nome+'\','+ei+')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+'">'
         : '<span class="ex-sets" style="color:'+col+'">'+displaySerie+'</span>';
       return '<div class="ex-item" onclick="togEx(this)">' +
@@ -1021,7 +1035,7 @@ function renderDay(i) {
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
         '<span style="color:var(--muted)">Recupero: '+ex.recupero+'</span></div></div>';
     }).join('');
-    var addRow = canSwap
+    var addRow = canEdit
       ? '<div class="ex-add-row" onclick="openAdd('+i+',\''+fase.nome+'\')">' +
           '<span class="ex-add-icon">＋</span>' +
           '<span class="ex-add-lbl">AGGIUNGI ESERCIZIO</span>' +
@@ -1199,6 +1213,13 @@ function doSwap(newExId) {
   }
   closeSwap();
   renderDay(dayIdx);
+  // Se già salvato, aggiorna Supabase silenziosamente
+  if (progSaved && currentProg.id) {
+    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
+    // Aggiorna anche lo storico in memoria
+    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
+    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
+  }
 }
 
 async function doSaveProgram() {
