@@ -370,6 +370,8 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 var EX = {};
 DB_RAW.esercizi.forEach(function(e){ EX[e.id] = e; });
 
+DB_RAW.esercizi.forEach(function(e){ EX[e.id] = e; });
+
 // ── Supabase ───────────────────────────────────────────
 var SUPABASE_URL = 'https://gspynnoiolfxvdtunlox.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcHlubm9pb2xmeHZkdHVubG94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwOTAzNTAsImV4cCI6MjA5NjY2NjM1MH0.3Ouumvw6kDw-T8TKH65S5A7L0YjdEi5WIOMQQhXP4WE';
@@ -532,7 +534,8 @@ function selectForPhase(fase, n, context) {
   // Restituisce oggetti esercizio completi con serie e recupero dal DB
   return selected.map(function(id) {
     var ex = EX[id];
-    return { id: id, serie: ex.sets_default, recupero: ex.recupero + 's' };
+    var volume = context.time || 'standard';
+    return { id: id, serie: ex.sets[volume] || ex.sets.standard, recupero: ex.recupero + 's' };
   });
 }
 
@@ -594,6 +597,7 @@ function buildProgram(form, progHistory) {
     equipment: form.equipment,
     skill:    form.skill,
     muscle:   form.muscle,
+    time:     form.time || 'standard',
     recentExIds:    recentExIds,
     recentPatterns: recentPatterns,
     patternsUsedToday: [],
@@ -934,24 +938,27 @@ function renderDay(i) {
   var g = currentProg.giorni[i];
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
     var col = phColors[fase.nome] || 'var(--gold)';
+    var isCore = fase.nome === 'CORE';
+    var giri = isCore ? (form.time === 'leggero' ? 2 : form.time === 'intenso' ? 4 : 3) : null;
     var exHtml = fase.esercizi.map(function(ex, ei) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
+      var displaySerie = isCore ? ex.serie.replace(/^\d+x/, '') : ex.serie;
       return '<div class="ex-item" onclick="togEx(this)">' +
         '<div class="ex-row">' +
         '<span class="ex-n">0'+(ei+1)+'</span>' +
         '<div class="ex-inf">' +
         '<div class="ex-nm">'+dbEx.name+'</div>' +
-        '<div class="ex-mt"><span class="ex-sets" style="color:'+col+'">'+ex.serie+'</span>' +
+        '<div class="ex-mt"><span class="ex-sets" style="color:'+col+'">'+displaySerie+'</span>' +
         '<span class="ex-tool">· '+dbEx.attrezzo.join(', ')+'</span></div></div>' +
         '<span class="ex-chv">&#8250;</span></div>' +
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
         '<span style="color:var(--muted)">Recupero: '+ex.recupero+'</span></div></div>';
     }).join('');
-    return '<div class="phase-blk">' +
-      '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span>' +
-      '</div>' +
-      exHtml + '</div>';
+    var phaseHeader = isCore
+      ? '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">CORE</span><span class="phase-dur" style="color:'+col+'">'+giri+' GIRI</span></div>'
+      : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span></div>';
+    return '<div class="phase-blk">' + phaseHeader + exHtml + '</div>';
   }).join('');
 }
 
