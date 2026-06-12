@@ -929,7 +929,7 @@ function renderProg(prog) {
   renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
-  document.getElementById('progRecalcBtn').disabled = false;
+  document.getElementById('progRecalcBtn').style.display = '';
 }
 
 function switchDay(i) {
@@ -987,7 +987,7 @@ async function doSaveProgram() {
   progHistory.push(JSON.parse(JSON.stringify(currentProg)));
   if (progHistory.length > 10) progHistory.shift();
   btn.textContent = 'SALVATO';
-  document.getElementById('progRecalcBtn').disabled = true;
+  document.getElementById('progRecalcBtn').style.display = 'none';
   renderHistList();
 }
 
@@ -997,7 +997,7 @@ function viewHist(i) {
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
-  document.getElementById('progRecalcBtn').disabled = true;
+  document.getElementById('progRecalcBtn').style.display = 'none';
   goTo('sProg');
 }
 
