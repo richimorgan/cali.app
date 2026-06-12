@@ -1205,6 +1205,8 @@ function moveEx(dayIdx, faseNome, exIdx, dir) {
     if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
   }
 }
+
+function openAdd(dayIdx, faseNome) {
   var fase = faseNome.toLowerCase();
   swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: -1, fase: fase }; // exIdx -1 = modalità aggiungi
   swapFilters = { cat: '', diff: 0 };
