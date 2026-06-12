@@ -561,7 +561,8 @@ function selectForPhase(fase, n, context) {
   // Restituisce oggetti esercizio completi con serie e recupero dal DB
   return selected.map(function(id) {
     var ex = EX[id];
-    return { id: id, serie: ex.sets_default, recupero: ex.recupero + 's' };
+    var volume = context.time || 'standard';
+    return { id: id, serie: ex.sets[volume] || ex.sets.standard, recupero: ex.recupero + 's' };
   });
 }
 
@@ -626,6 +627,7 @@ function buildProgram(form, progHistory) {
     equipment: form.equipment,
     skill:    form.skill,
     muscle:   form.muscle,
+    time:     form.time || 'standard',
     recentExIds:    recentExIds,
     recentPatterns: recentPatterns,
     patternsUsedToday: [],
