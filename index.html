@@ -214,6 +214,11 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .edit-banner-close{background:none;border:1px solid #3ABFAA44;color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;padding:4px 8px;border-radius:3px}
 /* EXPORT BUTTON */
 .export-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;padding:8px 12px;border-radius:4px}
+/* REORDER BUTTONS */
+.ex-reorder{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.ex-reorder-btn{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:1px 4px;line-height:1;transition:color .15s}
+.ex-reorder-btn:active{color:var(--teal)}
+.ex-reorder-btn:disabled{opacity:.2;cursor:default}
 </style>
 </head>
 <body>
@@ -1030,9 +1035,17 @@ function renderDay(i) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
       var displaySerie = isCore ? ex.serie.replace(/^\d+x/, '') : ex.serie;
-      var swapBtn = '<button class="swap-btn" title="Sostituisci" onclick="event.stopPropagation();openSwap('+i+',\''+fase.nome+'\','+ei+')">⇄</button>';
+      var swapBtn = canEdit
+        ? '<button class="swap-btn" title="Sostituisci" onclick="event.stopPropagation();openSwap('+i+',\''+fase.nome+'\','+ei+')">⇄</button>'
+        : '';
       var removeBtn = canEdit
         ? '<button class="ex-remove-btn" title="Rimuovi" onclick="event.stopPropagation();removeEx('+i+',\''+fase.nome+'\','+ei+')">✕</button>'
+        : '';
+      var reorderBtns = canEdit
+        ? '<div class="ex-reorder">' +
+            '<button class="ex-reorder-btn" onclick="event.stopPropagation();moveEx('+i+',\''+fase.nome+'\','+ei+',-1)"' + (ei===0?' disabled':'') + '>▲</button>' +
+            '<button class="ex-reorder-btn" onclick="event.stopPropagation();moveEx('+i+',\''+fase.nome+'\','+ei+',1)"' + (ei===fase.esercizi.length-1?' disabled':'') + '>▼</button>' +
+          '</div>'
         : '';
       var serieEl = canEdit
         ? '<input class="ex-sets-input" value="'+displaySerie+'" onclick="event.stopPropagation()" onblur="saveSerieEdit(this,'+i+',\''+fase.nome+'\','+ei+')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+'">'
@@ -1045,6 +1058,7 @@ function renderDay(i) {
         '<div class="ex-mt">'+serieEl+
         '<span class="ex-tool">· '+dbEx.attrezzo.join(', ')+'</span></div></div>' +
         removeBtn +
+        reorderBtns +
         swapBtn +
         '<span class="ex-chv">&#8250;</span></div>' +
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
@@ -1175,7 +1189,22 @@ function removeEx(dayIdx, faseNome, exIdx) {
   }
 }
 
-function openAdd(dayIdx, faseNome) {
+function moveEx(dayIdx, faseNome, exIdx, dir) {
+  var fase = currentProg.giorni[dayIdx].fasi
+    .find(function(f){ return f.nome === faseNome; });
+  if (!fase) return;
+  var newIdx = exIdx + dir;
+  if (newIdx < 0 || newIdx >= fase.esercizi.length) return;
+  var tmp = fase.esercizi[exIdx];
+  fase.esercizi[exIdx] = fase.esercizi[newIdx];
+  fase.esercizi[newIdx] = tmp;
+  renderDay(dayIdx);
+  if (progSaved && currentProg.id) {
+    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
+    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
+    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
+  }
+}
   var fase = faseNome.toLowerCase();
   swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: -1, fase: fase }; // exIdx -1 = modalità aggiungi
   swapFilters = { cat: '', diff: 0 };
