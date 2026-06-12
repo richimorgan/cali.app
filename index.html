@@ -440,11 +440,12 @@ var SKILL_ID_MAP = {
   'One Arm Pull-up':'one_arm_pull_up'
 };
 
+// null = nessun filtro categoria; array = categorie ammesse
 var FOCUS_CAT_MAP = {
-  'Spinta':     's',
-  'Tirata':     't',
-  'Gambe':      'g',
-  'Mix':        null,
+  'Spinta':     ['s'],
+  'Tirata':     ['t'],
+  'Gambe':      ['g'],
+  'Mix':        ['s','t'],
   'Full Body':  null
 };
 
@@ -453,39 +454,29 @@ function filterCandidates(fase, context) {
   var maxLv = context.level + 1;
 
   var results = DB_RAW.esercizi.filter(function(ex) {
-    // Vincolo assoluto: fase corretta
     if (ex.fase !== fase) return false;
-
-    // Vincolo assoluto: attrezzi disponibili
     if (!ex.attrezzo.every(function(a) { return context.equipment.indexOf(a) >= 0; })) return false;
-
-    // Vincolo assoluto: difficoltà
     if (ex.difficolta > maxLv) return false;
-
-    // Vincolo assoluto: categoria per il focus (solo in potenziamento)
     if (fase === 'potenziamento') {
-      var requiredCat = FOCUS_CAT_MAP[context.dayFocus];
-      if (requiredCat !== null) {
+      var allowedCats = FOCUS_CAT_MAP[context.dayFocus];
+      if (allowedCats !== null) {
         var exCat = catMap[ex.categoria] || ex.categoria;
-        if (exCat !== requiredCat) return false;
+        if (allowedCats.indexOf(exCat) < 0) return false;
       }
     }
-
     return true;
   });
 
-  // Fallback 1: pool troppo piccolo → rimuovi penalità storico (già gestito in score, ma
-  // se il pool è proprio vuoto allarga la difficoltà)
   if (results.length === 0) {
     results = DB_RAW.esercizi.filter(function(ex) {
       if (ex.fase !== fase) return false;
       if (!ex.attrezzo.every(function(a) { return context.equipment.indexOf(a) >= 0; })) return false;
       if (ex.difficolta > context.level + 2) return false;
       if (fase === 'potenziamento') {
-        var requiredCat = FOCUS_CAT_MAP[context.dayFocus];
-        if (requiredCat !== null) {
+        var allowedCats = FOCUS_CAT_MAP[context.dayFocus];
+        if (allowedCats !== null) {
           var exCat = catMap[ex.categoria] || ex.categoria;
-          if (exCat !== requiredCat) return false;
+          if (allowedCats.indexOf(exCat) < 0) return false;
         }
       }
       return true;
