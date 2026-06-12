@@ -325,7 +325,6 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 <div id="sProg" class="screen">
   <div class="prog-hd">
     <button class="prog-back" onclick="goTo('sHome')">&larr; HOME</button>
-    <button class="prog-back" id="progRecalcBtn" onclick="doRecalc()">&#8635; RICALCOLA</button>
     <button class="prog-save" id="progSaveBtn" onclick="doSaveProgram()">SALVA</button>
   </div>
   <div class="prog-meta">
@@ -463,14 +462,12 @@ function filterCandidates(fase, context) {
 function scoreExercise(ex, context) {
   var score = 100;
 
-  // VARIETÀ — penalizza esercizi recenti (ultimi 3 programmi)
+  // VARIETÀ — penalizza esercizi recenti
   var recentExIds = context.recentExIds || [];
-  var lastProg   = recentExIds[0] || [];
-  var prevProg   = recentExIds[1] || [];
-  var prevProg2  = recentExIds[2] || [];
-  if (lastProg.indexOf(ex.id) >= 0)   score -= 60;
-  if (prevProg.indexOf(ex.id) >= 0)   score -= 30;
-  if (prevProg2.indexOf(ex.id) >= 0)  score -= 15;
+  var lastProg  = recentExIds[0] || [];
+  var prevProg  = recentExIds[1] || [];
+  if (lastProg.indexOf(ex.id) >= 0)  score -= 60;
+  if (prevProg.indexOf(ex.id) >= 0)  score -= 30;
 
   // PATTERN — evita duplicati nella stessa sessione
   var patternsUsed = context.patternsUsedToday || [];
@@ -537,8 +534,7 @@ function selectForPhase(fase, n, context) {
   // Restituisce oggetti esercizio completi con serie e recupero dal DB
   return selected.map(function(id) {
     var ex = EX[id];
-    var volume = context.time || 'standard';
-    return { id: id, serie: ex.sets[volume] || ex.sets.standard, recupero: ex.recupero + 's' };
+    return { id: id, serie: ex.sets_default, recupero: ex.recupero + 's' };
   });
 }
 
@@ -553,24 +549,27 @@ function buildDay(dayFocus, counts, context) {
   context.patternsUsedToday = [];
   context.musclesUsedToday = [];
 
-  var potEx  = selectForPhase('potenziamento', counts.potEx,  context);
-  var skillEx = selectForPhase('skill',        counts.skillEx, context);
-  var coreEx  = selectForPhase('core',         counts.coreEx,  context);
+  var fasi = [];
+  if (counts.potEx > 0) {
+    fasi.push({ nome: 'POTENZIAMENTO', esercizi: selectForPhase('potenziamento', counts.potEx, context) });
+  }
+  if (counts.skillEx > 0) {
+    fasi.push({ nome: 'SKILL', esercizi: selectForPhase('skill', counts.skillEx, context) });
+  }
+  if (counts.coreEx > 0) {
+    fasi.push({ nome: 'CORE', esercizi: selectForPhase('core', counts.coreEx, context) });
+  }
 
   return {
     label: 'GIORNO ' + (context.dayIndex + 1),
     focus: dayFocus,
-    fasi: [
-      { nome: 'POTENZIAMENTO', esercizi: potEx  },
-      { nome: 'SKILL',         esercizi: skillEx },
-      { nome: 'CORE',          esercizi: coreEx  }
-    ]
+    fasi: fasi
   };
 }
 
 function buildProgram(form, progHistory) {
   // Esercizi recenti per anti-ripetizione (ultimi 2 programmi)
-  var recentExIds = progHistory.slice(-3).map(function(p) {
+  var recentExIds = progHistory.slice(-2).map(function(p) {
     var ids = [];
     p.giorni.forEach(function(g) {
       g.fasi.forEach(function(f) {
@@ -582,7 +581,7 @@ function buildProgram(form, progHistory) {
 
   // Conteggio pattern negli ultimi 4 programmi
   var recentPatterns = {};
-  progHistory.slice(-6).forEach(function(p) {
+  progHistory.slice(-4).forEach(function(p) {
     p.giorni.forEach(function(g) {
       g.fasi.forEach(function(f) {
         f.esercizi.forEach(function(e) {
@@ -600,7 +599,6 @@ function buildProgram(form, progHistory) {
     equipment: form.equipment,
     skill:    form.skill,
     muscle:   form.muscle,
-    time:     form.time || 'standard',
     recentExIds:    recentExIds,
     recentPatterns: recentPatterns,
     patternsUsedToday: [],
@@ -841,31 +839,40 @@ function pickTime(v, btn) {
 }
 
 function calcBalance(val, volume) {
-  // Base counts per volume
+  // idx 0 = tutto potenziamento, idx 4 = tutto skill
+  // slider 0 → idx 0, slider 100 → idx 4 (estremi eliminano la fase opposta)
   var base = {
-    leggero:  { pot: [2,3,3,2,2], skill: [1,2,2,3,3], core: [2,2,2,2,1] },
-    standard: { pot: [5,4,4,3,2], skill: [2,3,3,4,4], core: [3,3,3,3,2] },
-    intenso:  { pot: [6,5,5,4,3], skill: [3,4,4,5,5], core: [4,4,4,4,3] }
+    leggero:  { pot: [4,4,3,2,0], skill: [0,1,2,2,3], core: [2,2,2,2,2] },
+    standard: { pot: [5,5,4,3,0], skill: [0,2,3,3,5], core: [4,4,4,4,4] },
+    intenso:  { pot: [7,6,5,4,0], skill: [0,3,4,4,7], core: [4,4,4,5,5] }
   };
-  // val 0-100 maps to index 0-4
-  var idx = val <= 20 ? 0 : val <= 40 ? 1 : val <= 60 ? 2 : val <= 80 ? 3 : 4;
+  // val 0 → idx 0, val 1-24 → idx 1, 25-49 → idx 2, 50-74 → idx 3, 75-99 → idx 3, val 100 → idx 4
+  var idx;
+  if (val <= 0)        idx = 0;
+  else if (val < 25)   idx = 1;
+  else if (val < 50)   idx = 2;
+  else if (val < 100)  idx = 3;
+  else                 idx = 4;
   var v = volume || 'standard';
   var b = base[v] || base.standard;
   var potEx = b.pot[idx], skillEx = b.skill[idx], coreEx = b.core[idx];
   var total = potEx + skillEx + coreEx;
   return {
     potEx: potEx, skillEx: skillEx, coreEx: coreEx,
-    pot: Math.round(potEx/total*100),
-    skill: Math.round(skillEx/total*100),
-    core: Math.round(coreEx/total*100)
+    pot:   total ? Math.round(potEx/total*100)   : 0,
+    skill: total ? Math.round(skillEx/total*100) : 0,
+    core:  total ? Math.round(coreEx/total*100)  : 0
   };
 }
 
 function updateBalance(val) {
   form.balance = parseInt(val);
   var b = calcBalance(form.balance, form.time);
-  document.getElementById('balanceInfo').textContent =
-    'Pot ' + b.potEx + ' esercizi · Skill ' + b.skillEx + ' · Core ' + b.coreEx;
+  var parts = [];
+  if (b.potEx > 0)   parts.push('Pot ' + b.potEx);
+  if (b.skillEx > 0) parts.push('Skill ' + b.skillEx);
+  parts.push('Core ' + b.coreEx);
+  document.getElementById('balanceInfo').textContent = parts.join(' · ') + ' esercizi';
   document.getElementById('balanceSlider').style.background =
     'linear-gradient(to right,var(--gold) 0%,var(--gold) ' + val + '%,var(--purple) ' + val + '%,var(--purple) 100%)';
 }
@@ -929,7 +936,6 @@ function renderProg(prog) {
   renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
-  document.getElementById('progRecalcBtn').style.display = '';
 }
 
 function switchDay(i) {
@@ -942,40 +948,30 @@ function renderDay(i) {
   var g = currentProg.giorni[i];
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
     var col = phColors[fase.nome] || 'var(--gold)';
-    var isCore = fase.nome === 'CORE';
-    var giri = isCore ? (form.time === 'leggero' ? 2 : form.time === 'intenso' ? 4 : 3) : null;
     var exHtml = fase.esercizi.map(function(ex, ei) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
-      var displaySerie = isCore ? ex.serie.replace(/^\d+x/, '') : ex.serie;
       return '<div class="ex-item" onclick="togEx(this)">' +
         '<div class="ex-row">' +
         '<span class="ex-n">0'+(ei+1)+'</span>' +
         '<div class="ex-inf">' +
         '<div class="ex-nm">'+dbEx.name+'</div>' +
-        '<div class="ex-mt"><span class="ex-sets" style="color:'+col+'">'+displaySerie+'</span>' +
+        '<div class="ex-mt"><span class="ex-sets" style="color:'+col+'">'+ex.serie+'</span>' +
         '<span class="ex-tool">· '+dbEx.attrezzo.join(', ')+'</span></div></div>' +
         '<span class="ex-chv">&#8250;</span></div>' +
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
         '<span style="color:var(--muted)">Recupero: '+ex.recupero+'</span></div></div>';
     }).join('');
-    var phaseHeader = isCore
-      ? '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">CORE</span><span class="phase-dur" style="color:'+col+'">'+giri+' GIRI</span></div>'
-      : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span></div>';
-    return '<div class="phase-blk">' + phaseHeader + exHtml + '</div>';
+    return '<div class="phase-blk">' +
+      '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span>' +
+      '</div>' +
+      exHtml + '</div>';
   }).join('');
 }
 
 function togEx(card) {
   card.querySelector('.ex-desc').classList.toggle('open');
   card.querySelector('.ex-chv').classList.toggle('open');
-}
-
-function doRecalc() {
-  // Inietta currentProg come ultimo elemento temporaneo per l'anti-ripetizione
-  var historyWithCurrent = progHistory.concat(currentProg ? [currentProg] : []);
-  currentProg = buildProgram(form, historyWithCurrent);
-  renderProg(currentProg);
 }
 
 async function doSaveProgram() {
@@ -987,7 +983,6 @@ async function doSaveProgram() {
   progHistory.push(JSON.parse(JSON.stringify(currentProg)));
   if (progHistory.length > 10) progHistory.shift();
   btn.textContent = 'SALVATO';
-  document.getElementById('progRecalcBtn').style.display = 'none';
   renderHistList();
 }
 
@@ -997,7 +992,6 @@ function viewHist(i) {
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
-  document.getElementById('progRecalcBtn').style.display = 'none';
   goTo('sProg');
 }
 
