@@ -981,6 +981,7 @@ function doGenerate() {
     clearInterval(iv);
     try {
       currentProg = buildProgram(form, progHistory);
+      progSaved = false;
       renderProg(currentProg);
       goTo('sProg');
     } catch(err) {
@@ -1007,10 +1008,9 @@ function renderProg(prog) {
       g.label + '<br><span style="font-size:9px;font-weight:400;letter-spacing:1px">' + g.focus.toUpperCase() + '</span></button>';
   }).join('');
   currentDay = 0;
-  renderDay(0);
-  progSaved = false;
   editModeActive = false;
   document.getElementById('editBanner').classList.remove('on');
+  renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
   document.getElementById('progRecalcBtn').style.display = '';
@@ -1159,6 +1159,7 @@ function doExport() {
 function doRecalc() {
   var historyWithCurrent = progHistory.concat(currentProg ? [currentProg] : []);
   currentProg = buildProgram(form, historyWithCurrent);
+  progSaved = false;
   renderProg(currentProg);
 }
 
