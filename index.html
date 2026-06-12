@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -207,6 +208,12 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 /* REMOVE BUTTON */
 .ex-remove-btn{background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;transition:color .15s}
 .ex-remove-btn:active{color:var(--red)}
+/* EDIT MODE BANNER */
+.edit-banner{display:none;padding:8px 20px;background:#3ABFAA18;border-bottom:1px solid #3ABFAA44;font-size:10px;color:var(--teal);font-family:'JetBrains Mono',monospace;letter-spacing:1px;align-items:center;justify-content:space-between;flex-shrink:0}
+.edit-banner.on{display:flex}
+.edit-banner-close{background:none;border:1px solid #3ABFAA44;color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;padding:4px 8px;border-radius:3px}
+/* EXPORT BUTTON */
+.export-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;padding:8px 12px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -371,7 +378,12 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
   <div class="prog-hd">
     <button class="prog-back" onclick="goTo('sHome')">&larr; HOME</button>
     <button class="prog-back" id="progRecalcBtn" onclick="doRecalc()">&#8635; RICALCOLA</button>
+    <button class="export-btn" onclick="doExport()" title="Esporta PNG">&#8681;</button>
     <button class="prog-save" id="progSaveBtn" onclick="doSaveProgram()">SALVA</button>
+  </div>
+  <div class="edit-banner" id="editBanner">
+    <span>✏ MODALITÀ MODIFICA</span>
+    <button class="edit-banner-close" onclick="exitEditMode()">ESCI</button>
   </div>
   <div class="prog-meta">
     <div class="prog-meta-title" id="progTitle">Programma</div>
@@ -429,6 +441,7 @@ var progHistory = [];
 var currentProg = null;
 var currentDay = 0;
 var progSaved = false;
+var editModeActive = false;
 var form = {
   days: 3,
   dayFocus: ['Spinta','Tirata','Mix (spinta + tirata)'],
@@ -991,6 +1004,8 @@ function renderProg(prog) {
   currentDay = 0;
   renderDay(0);
   progSaved = false;
+  editModeActive = false;
+  document.getElementById('editBanner').classList.remove('on');
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
   document.getElementById('progRecalcBtn').style.display = '';
@@ -1004,7 +1019,7 @@ function switchDay(i) {
 
 function renderDay(i) {
   var g = currentProg.giorni[i];
-  var canEdit = true;
+  var canEdit = !progSaved || editModeActive;
   var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
   var giriMap = { leggero: 2, standard: 3, intenso: 4 };
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
@@ -1046,11 +1061,85 @@ function renderDay(i) {
       : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span></div>';
     return '<div class="phase-blk">' + phaseHeader + exHtml + addRow + '</div>';
   }).join('');
+  if (progSaved && !editModeActive) attachLongPress();
 }
 
 function togEx(card) {
   card.querySelector('.ex-desc').classList.toggle('open');
   card.querySelector('.ex-chv').classList.toggle('open');
+}
+
+function enterEditMode() {
+  editModeActive = true;
+  document.getElementById('editBanner').classList.add('on');
+  renderDay(currentDay);
+}
+
+function exitEditMode() {
+  editModeActive = false;
+  document.getElementById('editBanner').classList.remove('on');
+  renderDay(currentDay);
+}
+
+// Long press detection (500ms) on ex-item rows — attaches after renderDay
+function attachLongPress() {
+  if (!progSaved) return; // non serve se già in edit mode libero
+  var items = document.querySelectorAll('#dayBody .ex-item');
+  items.forEach(function(item) {
+    var timer = null;
+    item.addEventListener('touchstart', function(e) {
+      timer = setTimeout(function() { enterEditMode(); }, 500);
+    }, { passive: true });
+    item.addEventListener('touchend', function() { clearTimeout(timer); });
+    item.addEventListener('touchmove', function() { clearTimeout(timer); });
+    // Desktop: doppio click
+    item.addEventListener('dblclick', function() { enterEditMode(); });
+  });
+}
+
+function doExport() {
+  var el = document.getElementById('dayBody');
+  if (!el) return;
+  // Nascondi temporaneamente i bottoni di edit durante lo screenshot
+  var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row');
+  btns.forEach(function(b){ b.style.display = 'none'; });
+  // Sostituisci input con span per lo screenshot
+  var inputs = el.querySelectorAll('.ex-sets-input');
+  inputs.forEach(function(inp) {
+    inp.setAttribute('data-vis', '1');
+    var span = document.createElement('span');
+    span.className = 'ex-sets';
+    span.style.color = inp.style.color;
+    span.textContent = inp.value;
+    inp.parentNode.insertBefore(span, inp);
+    inp.style.display = 'none';
+  });
+  html2canvas(el, {
+    backgroundColor: '#0E0E0F',
+    scale: 2,
+    useCORS: true,
+    logging: false
+  }).then(function(canvas) {
+    // Ripristina
+    btns.forEach(function(b){ b.style.display = ''; });
+    inputs.forEach(function(inp) {
+      inp.style.display = '';
+      var span = inp.parentNode.querySelector('span[class="ex-sets"]');
+      if (span) span.parentNode.removeChild(span);
+    });
+    // Download
+    var link = document.createElement('a');
+    var giorno = currentProg && currentProg.giorni[currentDay]
+      ? currentProg.giorni[currentDay].label.replace(' ', '_')
+      : 'programma';
+    link.download = 'cali_' + giorno + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(function() {
+    btns.forEach(function(b){ b.style.display = ''; });
+    inputs.forEach(function(inp){ inp.style.display = ''; });
+    alert('Esportazione non riuscita.');
+  });
 }
 
 function doRecalc() {
@@ -1250,6 +1339,7 @@ function viewHist(i) {
   currentProg = progHistory[i];
   if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
   progSaved = true;
+  editModeActive = false;
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
