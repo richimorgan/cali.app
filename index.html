@@ -387,7 +387,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
       <button class="lib-pill" style="color:var(--muted)" onclick="libFilter('cat','tirata',this)">TIRATA</button>
       <button class="lib-pill" style="color:var(--muted)" onclick="libFilter('cat','core',this)">CORE</button>
       <button class="lib-pill" style="color:var(--muted)" onclick="libFilter('cat','gambe',this)">GAMBE</button>
-      <button class="lib-pill" style="color:var(--muted)" onclick="libFilter('cat','',this)">MIX</button>
+      <button class="lib-pill" style="color:var(--muted)" onclick="libFilter('cat','mix',this)">MIX</button>
     </div>
     <div class="lib-filter-row" id="libDiffPills">
       <button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="libFilter('diff',0,this)">LV TUTTI</button>
@@ -420,7 +420,7 @@ var currentDay = 0;
 var progSaved = false;
 var form = {
   days: 3,
-  dayFocus: ['Spinta','Tirata','Mix'],
+  dayFocus: ['Spinta','Tirata','Mix (spinta + tirata)'],
   skill: 'Nessuno',
   muscle: 'Nessuno',
   equipment: ['sbarra','parallele alte','parallele basse','sbarra bassa','terra','struttura','panchina'],
@@ -442,11 +442,11 @@ var SKILL_ID_MAP = {
 
 // null = nessun filtro categoria; array = categorie ammesse
 var FOCUS_CAT_MAP = {
-  'Spinta':     ['s'],
-  'Tirata':     ['t'],
-  'Gambe':      ['g'],
-  'Mix':        ['s','t'],
-  'Full Body':  null
+  'Spinta':               ['s'],
+  'Tirata':               ['t'],
+  'Gambe':                ['g'],
+  'Mix (spinta + tirata)':['s','t'],
+  'Full Body':            null
 };
 
 function filterCandidates(fase, context) {
@@ -821,7 +821,7 @@ function pickDays(n, btn) {
   form.days = n;
   document.querySelectorAll('#daysPills .pill').forEach(function(b){ b.classList.remove('on'); b.style.borderColor=''; });
   btn.classList.add('on'); btn.style.borderColor = 'var(--teal)';
-  while (form.dayFocus.length < n) form.dayFocus.push('Mix');
+  while (form.dayFocus.length < n) form.dayFocus.push('Mix (spinta + tirata)');
   form.dayFocus = form.dayFocus.slice(0, n);
   renderDayCfg();
 }
@@ -829,9 +829,9 @@ function pickDays(n, btn) {
 function setDayFocus(i, val) { form.dayFocus[i] = val; }
 
 function renderDayCfg() {
-  var opts = ['Spinta','Tirata','Mix','Gambe','Full Body'];
+  var opts = ['Spinta','Tirata','Mix (spinta + tirata)','Gambe','Full Body'];
   document.getElementById('dayCfg').innerHTML = Array.from({length: form.days}, function(_, i) {
-    var sel = form.dayFocus[i] || 'Mix';
+    var sel = form.dayFocus[i] || 'Mix (spinta + tirata)';
     return '<div class="day-row-card"><div class="day-row-lbl">GIORNO '+(i+1)+'</div>' +
       '<select onchange="setDayFocus('+i+',this.value)">' +
       opts.map(function(o){ return '<option value="'+o+'"'+(sel===o?' selected':'')+'>'+o+'</option>'; }).join('') +
@@ -1027,7 +1027,7 @@ function openSwap(dayIdx, faseNome, exIdx) {
   DB_RAW.esercizi.forEach(function(e) {
     if (e.fase === fase && cats.indexOf(e.categoria) < 0) cats.push(e.categoria);
   });
-  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX (spinta + tirata)' };
+  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX' };
   document.getElementById('swapCatPills').innerHTML =
     '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'cat\',\'\',this)">TUTTE</button>' +
     cats.map(function(c) {
