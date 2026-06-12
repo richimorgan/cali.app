@@ -325,6 +325,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 <div id="sProg" class="screen">
   <div class="prog-hd">
     <button class="prog-back" onclick="goTo('sHome')">&larr; HOME</button>
+    <button class="prog-back" id="progRecalcBtn" onclick="doRecalc()">&#8635; RICALCOLA</button>
     <button class="prog-save" id="progSaveBtn" onclick="doSaveProgram()">SALVA</button>
   </div>
   <div class="prog-meta">
@@ -462,12 +463,14 @@ function filterCandidates(fase, context) {
 function scoreExercise(ex, context) {
   var score = 100;
 
-  // VARIETÀ — penalizza esercizi recenti
+  // VARIETÀ — penalizza esercizi recenti (ultimi 3 programmi)
   var recentExIds = context.recentExIds || [];
-  var lastProg  = recentExIds[0] || [];
-  var prevProg  = recentExIds[1] || [];
-  if (lastProg.indexOf(ex.id) >= 0)  score -= 60;
-  if (prevProg.indexOf(ex.id) >= 0)  score -= 30;
+  var lastProg   = recentExIds[0] || [];
+  var prevProg   = recentExIds[1] || [];
+  var prevProg2  = recentExIds[2] || [];
+  if (lastProg.indexOf(ex.id) >= 0)   score -= 60;
+  if (prevProg.indexOf(ex.id) >= 0)   score -= 30;
+  if (prevProg2.indexOf(ex.id) >= 0)  score -= 15;
 
   // PATTERN — evita duplicati nella stessa sessione
   var patternsUsed = context.patternsUsedToday || [];
@@ -567,7 +570,7 @@ function buildDay(dayFocus, counts, context) {
 
 function buildProgram(form, progHistory) {
   // Esercizi recenti per anti-ripetizione (ultimi 2 programmi)
-  var recentExIds = progHistory.slice(-2).map(function(p) {
+  var recentExIds = progHistory.slice(-3).map(function(p) {
     var ids = [];
     p.giorni.forEach(function(g) {
       g.fasi.forEach(function(f) {
@@ -579,7 +582,7 @@ function buildProgram(form, progHistory) {
 
   // Conteggio pattern negli ultimi 4 programmi
   var recentPatterns = {};
-  progHistory.slice(-4).forEach(function(p) {
+  progHistory.slice(-6).forEach(function(p) {
     p.giorni.forEach(function(g) {
       g.fasi.forEach(function(f) {
         f.esercizi.forEach(function(e) {
@@ -926,6 +929,7 @@ function renderProg(prog) {
   renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
+  document.getElementById('progRecalcBtn').disabled = false;
 }
 
 function switchDay(i) {
@@ -967,6 +971,13 @@ function togEx(card) {
   card.querySelector('.ex-chv').classList.toggle('open');
 }
 
+function doRecalc() {
+  // Inietta currentProg come ultimo elemento temporaneo per l'anti-ripetizione
+  var historyWithCurrent = progHistory.concat(currentProg ? [currentProg] : []);
+  currentProg = buildProgram(form, historyWithCurrent);
+  renderProg(currentProg);
+}
+
 async function doSaveProgram() {
   var btn = document.getElementById('progSaveBtn');
   btn.disabled = true; btn.textContent = '...';
@@ -976,6 +987,7 @@ async function doSaveProgram() {
   progHistory.push(JSON.parse(JSON.stringify(currentProg)));
   if (progHistory.length > 10) progHistory.shift();
   btn.textContent = 'SALVATO';
+  document.getElementById('progRecalcBtn').disabled = true;
   renderHistList();
 }
 
@@ -985,6 +997,7 @@ function viewHist(i) {
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
+  document.getElementById('progRecalcBtn').disabled = true;
   goTo('sProg');
 }
 
