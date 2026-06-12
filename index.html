@@ -176,10 +176,45 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .screen{position:relative;z-index:1}
 #sHome .hist-card{background:rgba(22,22,24,0.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 #sHome .act-btn:not(.act-primary){background:rgba(22,22,24,0.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* SWAP OVERLAY */
+.swap-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 6px;line-height:1;flex-shrink:0;transition:color .15s}
+.swap-btn:active{color:var(--teal)}
+#swapOverlay{display:none;position:fixed;inset:0;z-index:100;flex-direction:column;background:var(--bg)}
+#swapOverlay.open{display:flex}
+.swap-hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.swap-title{font-size:16px;font-weight:800;letter-spacing:-.5px;flex:1}
+.swap-close{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;padding:8px 12px;border-radius:4px}
+.swap-replacing{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:10px 20px 0;flex-shrink:0}
+.swap-replacing span{color:var(--text);font-weight:700}
+.swap-filters{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.swap-filter-row{display:flex;gap:6px;flex-wrap:wrap}
+.swap-list{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:6px;padding-bottom:32px}
+.swap-item{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .1s}
+.swap-item:active{background:var(--surface2)}
+.swap-item.current{border-color:var(--teal);opacity:.5;cursor:default}
+.swap-item-inf{flex:1}
+.swap-item-nm{font-size:13px;font-weight:700;margin-bottom:3px}
+.swap-item-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.swap-count{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:4px 0}
 </style>
 </head>
 <body>
 <canvas id="wave-canvas"></canvas>
+
+<!-- SWAP OVERLAY -->
+<div id="swapOverlay">
+  <div class="swap-hd">
+    <button class="swap-close" onclick="closeSwap()">✕ CHIUDI</button>
+    <div class="swap-title">Sostituisci</div>
+  </div>
+  <div class="swap-replacing">Stai sostituendo: <span id="swapCurrentName"></span></div>
+  <div class="swap-filters">
+    <div class="swap-filter-row" id="swapCatPills"></div>
+    <div class="swap-filter-row" id="swapDiffPills"></div>
+  </div>
+  <div class="swap-list" id="swapList"></div>
+</div>
 <div id="sToken" class="screen">
   <div class="card">
     <div class="card-title">Accedi</div>
@@ -382,6 +417,7 @@ var profile = null;
 var progHistory = [];
 var currentProg = null;
 var currentDay = 0;
+var progSaved = false;
 var form = {
   days: 3,
   dayFocus: ['Spinta','Tirata','Mix'],
@@ -934,6 +970,7 @@ function renderProg(prog) {
   }).join('');
   currentDay = 0;
   renderDay(0);
+  progSaved = false;
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
 }
@@ -946,11 +983,15 @@ function switchDay(i) {
 
 function renderDay(i) {
   var g = currentProg.giorni[i];
+  var canSwap = !progSaved;
   document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
     var col = phColors[fase.nome] || 'var(--gold)';
     var exHtml = fase.esercizi.map(function(ex, ei) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
+      var swapBtn = canSwap
+        ? '<button class="swap-btn" title="Sostituisci" onclick="event.stopPropagation();openSwap('+i+',\''+fase.nome+'\','+ei+')">⇄</button>'
+        : '';
       return '<div class="ex-item" onclick="togEx(this)">' +
         '<div class="ex-row">' +
         '<span class="ex-n">0'+(ei+1)+'</span>' +
@@ -958,6 +999,7 @@ function renderDay(i) {
         '<div class="ex-nm">'+dbEx.name+'</div>' +
         '<div class="ex-mt"><span class="ex-sets" style="color:'+col+'">'+ex.serie+'</span>' +
         '<span class="ex-tool">· '+dbEx.attrezzo.join(', ')+'</span></div></div>' +
+        swapBtn +
         '<span class="ex-chv">&#8250;</span></div>' +
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
         '<span style="color:var(--muted)">Recupero: '+ex.recupero+'</span></div></div>';
@@ -974,6 +1016,106 @@ function togEx(card) {
   card.querySelector('.ex-chv').classList.toggle('open');
 }
 
+// ── Swap logic ─────────────────────────────────────────
+var swapTarget = null; // { dayIdx, faseNome, exIdx, fase }
+var swapFilters = { cat: '', diff: 0 };
+
+function openSwap(dayIdx, faseNome, exIdx) {
+  var fase = faseNome.toLowerCase(); // 'potenziamento' | 'skill' | 'core'
+  var currentEx = currentProg.giorni[dayIdx].fasi
+    .find(function(f){ return f.nome === faseNome; }).esercizi[exIdx];
+  swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: exIdx, fase: fase };
+  swapFilters = { cat: '', diff: 0 };
+
+  document.getElementById('swapCurrentName').textContent = EX[currentEx.id] ? EX[currentEx.id].name : currentEx.id;
+
+  // Categoria pills — solo le categorie presenti nella fase
+  var cats = [];
+  DB_RAW.esercizi.forEach(function(e) {
+    if (e.fase === fase && cats.indexOf(e.categoria) < 0) cats.push(e.categoria);
+  });
+  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX' };
+  document.getElementById('swapCatPills').innerHTML =
+    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'cat\',\'\',this)">TUTTE</button>' +
+    cats.map(function(c) {
+      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'cat\',\''+c+'\',this)">'+(catLabels[c]||c.toUpperCase())+'</button>';
+    }).join('');
+
+  // Difficoltà pills
+  document.getElementById('swapDiffPills').innerHTML =
+    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'diff\',0,this)">LV TUTTI</button>' +
+    [1,2,3,4,5].map(function(n) {
+      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'diff\','+n+',this)">LV '+n+'</button>';
+    }).join('');
+
+  renderSwapList();
+  document.getElementById('swapOverlay').classList.add('open');
+}
+
+function closeSwap() {
+  document.getElementById('swapOverlay').classList.remove('open');
+  swapTarget = null;
+}
+
+function swapFilter(key, val, btn) {
+  swapFilters[key] = val;
+  var rowId = key === 'cat' ? 'swapCatPills' : 'swapDiffPills';
+  document.querySelectorAll('#' + rowId + ' .lib-pill').forEach(function(b) {
+    b.classList.remove('on'); b.style.borderColor = '';
+  });
+  btn.classList.add('on'); btn.style.borderColor = btn.style.color || 'var(--text)';
+  renderSwapList();
+}
+
+function renderSwapList() {
+  if (!swapTarget) return;
+  var currentExId = currentProg.giorni[swapTarget.dayIdx].fasi
+    .find(function(f){ return f.nome === swapTarget.faseNome; }).esercizi[swapTarget.exIdx].id;
+
+  var filtered = DB_RAW.esercizi.filter(function(e) {
+    if (e.fase !== swapTarget.fase) return false;
+    if (swapFilters.cat && e.categoria !== swapFilters.cat) return false;
+    if (swapFilters.diff && e.difficolta !== swapFilters.diff) return false;
+    return true;
+  });
+
+  var faseCol = { potenziamento: 'var(--gold)', skill: 'var(--purple)', core: 'var(--teal)' }[swapTarget.fase] || 'var(--muted)';
+  var el = document.getElementById('swapList');
+  el.innerHTML = '<div class="swap-count">' + filtered.length + ' esercizi</div>' +
+    filtered.map(function(e) {
+      var isCurrent = e.id === currentExId;
+      var dots = [1,2,3,4,5].map(function(n) {
+        return '<span class="lib-dot'+(n<=e.difficolta?' on':'')+'" style="'+(n<=e.difficolta?'background:'+faseCol:'')+'"></span>';
+      }).join('');
+      var toolBadge = '<span class="lib-badge" style="color:var(--muted);border-color:var(--border)">'+e.attrezzo.join(', ').toUpperCase()+'</span>';
+      var currentBadge = isCurrent ? '<span class="lib-badge" style="color:var(--teal);border-color:var(--teal)44">ATTUALE</span>' : '';
+      return '<div class="swap-item'+(isCurrent?' current':'')+'" onclick="'+(isCurrent?'':('doSwap(\''+e.id+'\')'))+'">' +
+        '<div class="lib-dots">'+dots+'</div>' +
+        '<div class="swap-item-inf">' +
+          '<div class="swap-item-nm">'+e.name+'</div>' +
+          '<div class="swap-item-meta">'+toolBadge+currentBadge+'</div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function doSwap(newExId) {
+  if (!swapTarget) return;
+  var newEx = EX[newExId];
+  if (!newEx) return;
+  var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
+  var dayIdx = swapTarget.dayIdx;
+  var fase = currentProg.giorni[dayIdx].fasi
+    .find(function(f){ return f.nome === swapTarget.faseNome; });
+  fase.esercizi[swapTarget.exIdx] = {
+    id: newExId,
+    serie: newEx.sets[volume] || newEx.sets.standard,
+    recupero: newEx.recupero + 's'
+  };
+  closeSwap();
+  renderDay(dayIdx);
+}
+
 async function doSaveProgram() {
   var btn = document.getElementById('progSaveBtn');
   btn.disabled = true; btn.textContent = '...';
@@ -982,13 +1124,16 @@ async function doSaveProgram() {
   if (saved) currentProg.id = saved.id;
   progHistory.push(JSON.parse(JSON.stringify(currentProg)));
   if (progHistory.length > 10) progHistory.shift();
+  progSaved = true;
   btn.textContent = 'SALVATO';
+  renderDay(currentDay); // rimuove i bottoni swap
   renderHistList();
 }
 
 function viewHist(i) {
   currentProg = progHistory[i];
   if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
+  progSaved = true;
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
