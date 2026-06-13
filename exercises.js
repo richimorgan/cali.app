@@ -3474,4 +3474,698 @@ var DB_RAW = {
       ],
       "richiede": [
         "plank"
-  
+      ],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "2x5/lato",
+        "standard": "3x8/lato",
+        "intenso": "3x10/lato"
+      },
+      "media": null,
+      "descrizione": "Da posizione di plank alto, porta lentamente il ginocchio verso il gomito dello stesso lato strisciando rasente al suolo. Alterna i lati. Senti lavorare: obliqui e flessori dell'anca. Errore comune: sollevare i fianchi lateralmente invece di mantenerli stabili."
+    },
+    {
+      "id": "plank_to_down_dog",
+      "name": "Plank to Down Dog",
+      "categoria": "core",
+      "tipo": "mix",
+      "muscoli": [
+        "spalle",
+        "core",
+        "femorali",
+        "polpacci"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "pike_push_up",
+        "hollow_body"
+      ],
+      "richiede": [],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "2x6",
+        "standard": "3x10",
+        "intenso": "3x12"
+      },
+      "media": null,
+      "descrizione": "Da plank alto, spingi le anche verso l'alto portandoti in cane a testa in giù, poi torna a plank. Senti lavorare: spalle, core e catena posteriore in alternanza. Errore comune: piegare le ginocchia in down dog invece di tendere i talloni verso il suolo."
+    },
+    {
+      "id": "dead_bug",
+      "name": "Dead Bug",
+      "categoria": "core",
+      "tipo": "isometrica",
+      "muscoli": [
+        "core",
+        "lombari"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "hollow_body",
+        "l_sit"
+      ],
+      "richiede": [
+        "dead_bug_semplificato"
+      ],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "2x4/lato",
+        "standard": "3x6/lato",
+        "intenso": "3x8/lato"
+      },
+      "media": null,
+      "descrizione": "Sdraiato, braccia tese verso il soffitto, gambe tese a 90°. Estendi un braccio sopra la testa e la gamba opposta verso il suolo tenendo la lombare incollata. Senti lavorare: core profondo e stabilizzatori con intensità maggiore della versione semplificata. Errore comune: abbassare contemporaneamente braccio e gamba dello stesso lato."
+    },
+    {
+      "id": "tuck_l_sit",
+      "name": "Tuck L-sit",
+      "categoria": "core",
+      "tipo": "isometrica",
+      "muscoli": [
+        "core",
+        "spalle",
+        "tricipiti",
+        "flessori anca"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "parallele basse",
+        "terra"
+      ],
+      "propedeutico_a": [
+        "l_sit"
+      ],
+      "richiede": [
+        "support_hold",
+        "pike_hold"
+      ],
+      "recupero": 75,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x8s",
+        "standard": "3x12s",
+        "intenso": "4x15s"
+      },
+      "media": null,
+      "descrizione": "Appoggiato sulle mani o parallele basse a braccia tese, solleva il corpo con le ginocchia raccolte al petto. Senti lavorare: core, tricipiti e flessori dell'anca. Errore comune: lasciare le spalle salire verso le orecchie invece di tenerle depresse."
+    },
+    {
+      "id": "straddle_l_sit",
+      "name": "Straddle L-sit",
+      "categoria": "core",
+      "tipo": "isometrica",
+      "muscoli": [
+        "core",
+        "spalle",
+        "tricipiti",
+        "flessori anca",
+        "adduttori"
+      ],
+      "difficolta": 3,
+      "attrezzo": [
+        "parallele basse",
+        "terra"
+      ],
+      "propedeutico_a": [
+        "v_sit"
+      ],
+      "richiede": [
+        "l_sit"
+      ],
+      "recupero": 90,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x6s",
+        "standard": "3x10s",
+        "intenso": "4x12s"
+      },
+      "media": null,
+      "descrizione": "L-sit con le gambe aperte lateralmente e tese, corpo sollevato sulle mani. Senti lavorare: core, adduttori e tricipiti con la riduzione del momento torcente rispetto al full L-sit. Errore comune: chiudere le gambe per compensare la fatica."
+    },
+    {
+      "id": "straddle_l_sit_v_sit",
+      "name": "Straddle L-sit to V-sit",
+      "categoria": "core",
+      "tipo": "forza",
+      "muscoli": [
+        "core",
+        "flessori anca",
+        "spalle",
+        "tricipiti"
+      ],
+      "difficolta": 4,
+      "attrezzo": [
+        "parallele basse",
+        "terra"
+      ],
+      "propedeutico_a": [
+        "v_sit"
+      ],
+      "richiede": [
+        "straddle_l_sit",
+        "l_sit"
+      ],
+      "recupero": 90,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x3",
+        "standard": "3x4",
+        "intenso": "4x5"
+      },
+      "media": null,
+      "descrizione": "Da straddle L-sit, comprimi le gambe verso il busto portandolo in V-sit mantenendo le braccia tese. Senti lavorare: flessori dell'anca e core con compressione dinamica. Errore comune: piegare le ginocchia durante la transizione."
+    },
+    {
+      "id": "ab_wheel_rollout",
+      "name": "Ab Wheel Rollout",
+      "categoria": "core",
+      "tipo": "forza",
+      "muscoli": [
+        "core",
+        "lombari",
+        "spalle",
+        "dorsali"
+      ],
+      "difficolta": 3,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "dragon_flag_tuck"
+      ],
+      "richiede": [
+        "hollow_body",
+        "plank"
+      ],
+      "recupero": 75,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x4",
+        "standard": "3x6",
+        "intenso": "4x8"
+      },
+      "media": null,
+      "descrizione": "In ginocchio, appoggia i pugni a terra. Rotola in avanti estendendo il corpo il più possibile, poi torna su contraendo il core. Senti lavorare: core anteriore profondo, lombari e spalle. Errore comune: cedere con la schiena nella fase di estensione invece di mantenere il corpo rigido."
+    },
+    {
+      "id": "dragon_flag_negativa",
+      "name": "Dragon Flag Negativa",
+      "categoria": "core",
+      "tipo": "eccentrica",
+      "muscoli": [
+        "core",
+        "lombari",
+        "spalle",
+        "quadricipiti",
+        "glutei"
+      ],
+      "difficolta": 3,
+      "attrezzo": [
+        "panchina",
+        "struttura"
+      ],
+      "propedeutico_a": [
+        "dragon_flag"
+      ],
+      "richiede": [
+        "dragon_flag_tuck",
+        "hollow_body"
+      ],
+      "recupero": 90,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x3",
+        "standard": "3x4",
+        "intenso": "4x5"
+      },
+      "media": null,
+      "descrizione": "Sali alla posizione verticale sulla panchina tenendo la struttura, poi abbassati lentamente in 5-6 secondi mantenendo il corpo rigido. Senti lavorare: core completo in eccentrica massimale. Errore comune: flettere i fianchi durante la discesa."
+    },
+    {
+      "id": "candlestick",
+      "name": "Candlestick",
+      "categoria": "core",
+      "tipo": "mix",
+      "muscoli": [
+        "core",
+        "glutei",
+        "lombari",
+        "spalle"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "dragon_flag_tuck",
+        "hollow_body"
+      ],
+      "richiede": [
+        "hollow_body"
+      ],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x6",
+        "standard": "3x8",
+        "intenso": "4x10"
+      },
+      "media": null,
+      "descrizione": "Sdraiato, porta le gambe verticali verso il soffitto sollevando anche i fianchi, tieni 2 secondi poi abbassa controllato. Senti lavorare: core, glutei e lombari. Errore comune: usare lo slancio per portare le gambe su invece di partire con un'azione muscolare controllata."
+    },
+    {
+      "id": "skin_the_cat",
+      "name": "Skin the Cat",
+      "categoria": "core",
+      "tipo": "mix",
+      "muscoli": [
+        "spalle",
+        "dorsali",
+        "core",
+        "petto"
+      ],
+      "difficolta": 3,
+      "attrezzo": [
+        "sbarra"
+      ],
+      "propedeutico_a": [
+        "tuck_back_lever",
+        "tuck_front_lever"
+      ],
+      "richiede": [
+        "dead_hang",
+        "hanging_leg_raise"
+      ],
+      "recupero": 90,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x3",
+        "standard": "3x4",
+        "intenso": "4x5"
+      },
+      "media": null,
+      "descrizione": "Da dead hang, porta le gambe su e oltre la sbarra ruotando il corpo completo fino al back lever, poi torna al contrario. Movimento lento e controllato. Senti lavorare: spalle, dorsali e core nella mobilità completa. Errore comune: usare lo slancio invece di controllare tutta la rotazione."
+    },
+    {
+      "id": "push_up_t",
+      "name": "T Push-up (con rotazione)",
+      "categoria": "spinta",
+      "tipo": "forza",
+      "muscoli": [
+        "petto",
+        "tricipiti",
+        "spalle",
+        "obliqui",
+        "stabilizzatori scapolari"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "archer_push_up"
+      ],
+      "richiede": [
+        "push_up"
+      ],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "horizontal_push",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x6/lato",
+        "standard": "3x8/lato",
+        "intenso": "4x10/lato"
+      },
+      "media": null,
+      "descrizione": "Esegui un push-up standard, poi in cima ruota il corpo aprendo un braccio verso il cielo con gambe e busto che formano una T. Alterna lato ad ogni ripetizione. Senti lavorare: petto, tricipiti e obliqui. Errore comune: ruotare prima di completare la spinta."
+    },
+    {
+      "id": "decline_push_up",
+      "name": "Decline Push-up (piedi rialzati)",
+      "categoria": "spinta",
+      "tipo": "forza",
+      "muscoli": [
+        "petto alto",
+        "spalle",
+        "tricipiti"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "panchina",
+        "struttura"
+      ],
+      "propedeutico_a": [
+        "pike_push_up_elevato"
+      ],
+      "richiede": [
+        "push_up"
+      ],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "horizontal_push",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x8",
+        "standard": "3x12",
+        "intenso": "4x15"
+      },
+      "media": null,
+      "descrizione": "Mani a terra, piedi su una panchina. Il corpo è inclinato con la testa in basso. Scendi portando il petto verso il suolo, poi spingi. Senti lavorare: petto alto e deltoide anteriore. Errore comune: lasciare che i fianchi scendano rompendo la rigidità del corpo."
+    },
+    {
+      "id": "rear_pull_up",
+      "name": "Rear Pull-up (nuca alla sbarra)",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "trapezio medio",
+        "romboidi",
+        "gran dorsale",
+        "bicipiti"
+      ],
+      "difficolta": 3,
+      "attrezzo": [
+        "sbarra"
+      ],
+      "propedeutico_a": [],
+      "richiede": [
+        "pull_up"
+      ],
+      "recupero": 90,
+      "skill_target": false,
+      "pattern": "vertical_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x4",
+        "standard": "3x6",
+        "intenso": "4x6"
+      },
+      "media": null,
+      "descrizione": "Come il pull-up normale ma invece di portare il petto verso la sbarra, abbassa la testa in avanti e porta la nuca verso di essa. Senti lavorare: trapezio medio e romboidi con retrazione scapolare profonda. Errore comune: forzare la cervicale invece di inclinarsi naturalmente."
+    },
+    {
+      "id": "face_pull_elastico",
+      "name": "Face Pull con elastico",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "trapezio medio",
+        "romboidi",
+        "rotatori esterni spalla",
+        "deltoide posteriore"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "elastico",
+        "sbarra"
+      ],
+      "propedeutico_a": [
+        "rear_pull_up"
+      ],
+      "richiede": [],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "horizontal_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x12",
+        "standard": "3x15",
+        "intenso": "4x20"
+      },
+      "media": null,
+      "descrizione": "Elastico ancorato alla sbarra all'altezza del viso. Tieni le estremità con i gomiti alti e aperti, tira verso il viso finendo con le mani vicino alle orecchie. Senti lavorare: trapezio medio, romboidi e rotatori esterni della spalla. Errore comune: abbassare i gomiti durante il movimento."
+    },
+    {
+      "id": "band_pull_apart",
+      "name": "Band Pull-Apart",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "trapezio medio",
+        "romboidi",
+        "rotatori esterni spalla",
+        "deltoide posteriore"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "elastico"
+      ],
+      "propedeutico_a": [
+        "face_pull_elastico"
+      ],
+      "richiede": [],
+      "recupero": 30,
+      "skill_target": false,
+      "pattern": "horizontal_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x15",
+        "standard": "3x20",
+        "intenso": "4x25"
+      },
+      "media": null,
+      "descrizione": "In piedi con l'elastico teso davanti a te all'altezza del petto e braccia tese. Apri le braccia lateralmente retraendo le scapole finché l'elastico tocca il petto, poi torna lentamente. Senti lavorare: trapezio medio, romboidi e deltoide posteriore. Errore comune: piegare i gomiti durante il movimento."
+    },
+    {
+      "id": "row_elastico",
+      "name": "Row con elastico",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "gran dorsale",
+        "romboidi",
+        "trapezio",
+        "bicipiti"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "elastico",
+        "sbarra"
+      ],
+      "propedeutico_a": [
+        "australian_row"
+      ],
+      "richiede": [],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "horizontal_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x10",
+        "standard": "3x12",
+        "intenso": "4x15"
+      },
+      "media": null,
+      "descrizione": "Elastico ancorato alla sbarra o struttura. Busto inclinato in avanti, tira le estremità verso i fianchi retraendo le scapole. Senti lavorare: gran dorsale, romboidi e bicipiti. Errore comune: usare il busto per rimbalzare invece di tirare con le braccia."
+    },
+    {
+      "id": "curl_elastico",
+      "name": "Curl bicipiti con elastico",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "bicipiti",
+        "avambracci"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "elastico"
+      ],
+      "propedeutico_a": [
+        "chin_up"
+      ],
+      "richiede": [],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "horizontal_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x12",
+        "standard": "3x15",
+        "intenso": "3x20"
+      },
+      "media": null,
+      "descrizione": "In piedi con l'elastico sotto i piedi, tieni le estremità con i palmi rivolti in su. Fletti i gomiti portando le mani verso le spalle tenendo i gomiti fermi ai fianchi. Senti lavorare: bicipiti e brachiale. Errore comune: muovere i gomiti in avanti usando il movimento del busto."
+    },
+    {
+      "id": "overhead_press_elastico",
+      "name": "Overhead Press con elastico",
+      "categoria": "spinta",
+      "tipo": "forza",
+      "muscoli": [
+        "deltoide",
+        "tricipiti",
+        "trapezio superiore"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "elastico"
+      ],
+      "propedeutico_a": [
+        "pike_push_up",
+        "handstand_push_up_wall"
+      ],
+      "richiede": [],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "vertical_push",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x10",
+        "standard": "3x12",
+        "intenso": "4x15"
+      },
+      "media": null,
+      "descrizione": "In piedi con l'elastico sotto i piedi, tieni le estremità all'altezza delle spalle con i palmi rivolti in avanti. Spingi verso l'alto estendendo completamente le braccia, poi abbassa controllato. Senti lavorare: deltoide, tricipiti e trapezio superiore. Errore comune: inarcare la schiena durante la spinta."
+    },
+    {
+      "id": "external_rotation_elastico",
+      "name": "External Rotation con elastico",
+      "categoria": "tirata",
+      "tipo": "forza",
+      "muscoli": [
+        "rotatori esterni spalla",
+        "infraspinato",
+        "piccolo rotondo"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "elastico",
+        "struttura"
+      ],
+      "propedeutico_a": [],
+      "richiede": [],
+      "recupero": 30,
+      "skill_target": false,
+      "pattern": "horizontal_pull",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x12/lato",
+        "standard": "3x15/lato",
+        "intenso": "3x20/lato"
+      },
+      "media": null,
+      "descrizione": "Elastico ancorato lateralmente all'altezza del gomito. Gomito piegato a 90° e tenuto al fianco, ruota l'avambraccio verso l'esterno contro la resistenza. Senti lavorare: cuffia dei rotatori, in particolare infraspinato e piccolo rotondo. Errore comune: allontanare il gomito dal fianco durante la rotazione."
+    },
+    {
+      "id": "tricep_pushdown_elastico",
+      "name": "Tricep Pushdown con elastico",
+      "categoria": "spinta",
+      "tipo": "forza",
+      "muscoli": [
+        "tricipiti"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "elastico",
+        "sbarra"
+      ],
+      "propedeutico_a": [
+        "diamond_push_up"
+      ],
+      "richiede": [],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "horizontal_push",
+      "fase": "potenziamento",
+      "sets": {
+        "leggero": "3x12",
+        "standard": "3x15",
+        "intenso": "3x20"
+      },
+      "media": null,
+      "descrizione": "Elastico ancorato alla sbarra in alto, tieni le estremità con i gomiti fermi ai fianchi a 90°. Spingi verso il basso estendendo completamente il gomito, poi risali lento. Senti lavorare: tricipiti in isolamento. Errore comune: muovere i gomiti in avanti o indietro invece di tenerli fissi."
+    },
+    {
+      "id": "jefferson_curl",
+      "name": "Jefferson Curl",
+      "categoria": "core",
+      "tipo": "forza",
+      "muscoli": [
+        "catena posteriore",
+        "lombari",
+        "femorali",
+        "trapezio"
+      ],
+      "difficolta": 2,
+      "attrezzo": [
+        "sbarra",
+        "struttura"
+      ],
+      "propedeutico_a": [],
+      "richiede": [],
+      "recupero": 60,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x5",
+        "standard": "3x6",
+        "intenso": "3x8"
+      },
+      "media": null,
+      "descrizione": "In piedi, fletti la colonna vertebra per vertebra partendo dal collo verso il basso lasciando che il peso corporeo tiri, poi estendi lentamente nello stesso ordine. Senti lavorare: catena posteriore e lombari in allungamento profondo. Errore comune: scendere tutto insieme invece di articolare vertebra per vertebra."
+    },
+    {
+      "id": "reverse_crunch",
+      "name": "Reverse Crunch",
+      "categoria": "core",
+      "tipo": "forza",
+      "muscoli": [
+        "addominali bassi",
+        "flessori anca",
+        "core"
+      ],
+      "difficolta": 1,
+      "attrezzo": [
+        "terra"
+      ],
+      "propedeutico_a": [
+        "tuck_l_sit",
+        "hanging_leg_raise"
+      ],
+      "richiede": [],
+      "recupero": 45,
+      "skill_target": false,
+      "pattern": "core",
+      "fase": "core",
+      "sets": {
+        "leggero": "3x12",
+        "standard": "3x15",
+        "intenso": "3x20"
+      },
+      "media": null,
+      "descrizione": "Sdraiato con le ginocchia piegate verso il petto, solleva il bacino portando le ginocchia verso il viso contraendo gli addominali. Senti lavorare: core inferiore e obliqui. Errore comune: usare il momentum dondolando invece di contrarre attivamente il core."
+    }
+  ]
+};
