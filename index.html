@@ -467,6 +467,15 @@ var currentProg = null;
 var currentDay = 0;
 var progSaved = false;
 var editModeActive = false;
+var historyDirty = false;
+
+function markDirty() {
+  if (!progSaved || !currentProg.id) return;
+  historyDirty = true;
+  var btn = document.getElementById('progSaveBtn');
+  btn.disabled = false;
+  btn.textContent = 'AGGIORNA';
+}
 var form = {
   days: 3,
   dayFocus: ['Spinta','Tirata','Mix (spinta + tirata)'],
@@ -787,6 +796,13 @@ async function saveWorkout(prog) {
 
 async function deleteWorkout(id) {
   await sb.from('workouts').delete().eq('id', id);
+}
+
+async function updateWorkout(id, giorni) {
+  await sb.from('workouts').update({ giorni: giorni }).eq('id', id);
+  // Aggiorna anche lo storico in memoria
+  var histIdx = progHistory.findIndex(function(p){ return p.id === id; });
+  if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(giorni));
 }
 
 // ── Init ───────────────────────────────────────────────
@@ -1187,6 +1203,7 @@ function doRecalc() {
   var historyWithCurrent = progHistory.concat(currentProg ? [currentProg] : []);
   currentProg = buildProgram(form, historyWithCurrent);
   progSaved = false;
+  historyDirty = false;
   renderProg(currentProg);
 }
 
@@ -1197,11 +1214,7 @@ function saveSerieEdit(input, dayIdx, faseNome, exIdx) {
     .find(function(f){ return f.nome === faseNome; });
   if (!fase) return;
   fase.esercizi[exIdx].serie = val;
-  if (progSaved && currentProg.id) {
-    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
-    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
-    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
-  }
+  markDirty();
 }
 
 function saveGiriEdit(input, dayIdx) {
@@ -1211,11 +1224,7 @@ function saveGiriEdit(input, dayIdx) {
     .find(function(f){ return f.nome === 'CORE'; });
   if (!fase) return;
   fase.giri = val;
-  if (progSaved && currentProg.id) {
-    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
-    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
-    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
-  }
+  markDirty();
 }
 
 function removeEx(dayIdx, faseNome, exIdx) {
@@ -1224,11 +1233,7 @@ function removeEx(dayIdx, faseNome, exIdx) {
   if (!fase || fase.esercizi.length <= 1) return;
   fase.esercizi.splice(exIdx, 1);
   renderDay(dayIdx);
-  if (progSaved && currentProg.id) {
-    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
-    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
-    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
-  }
+  markDirty();
 }
 
 function moveEx(dayIdx, faseNome, exIdx, dir) {
@@ -1241,11 +1246,7 @@ function moveEx(dayIdx, faseNome, exIdx, dir) {
   fase.esercizi[exIdx] = fase.esercizi[newIdx];
   fase.esercizi[newIdx] = tmp;
   renderDay(dayIdx);
-  if (progSaved && currentProg.id) {
-    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
-    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
-    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
-  }
+  markDirty();
 }
 
 function openAdd(dayIdx, faseNome) {
@@ -1384,28 +1385,32 @@ function doSwap(newExId) {
   }
   closeSwap();
   renderDay(dayIdx);
-  // Se già salvato, aggiorna Supabase silenziosamente
-  if (progSaved && currentProg.id) {
-    sb.from('workouts').update({ giorni: currentProg.giorni }).eq('id', currentProg.id);
-    // Aggiorna anche lo storico in memoria
-    var histIdx = progHistory.findIndex(function(p){ return p.id === currentProg.id; });
-    if (histIdx >= 0) progHistory[histIdx].giorni = JSON.parse(JSON.stringify(currentProg.giorni));
-  }
+  markDirty();
 }
 
 async function doSaveProgram() {
   var btn = document.getElementById('progSaveBtn');
   btn.disabled = true; btn.textContent = '...';
-  currentProg.savedAt = new Date().toISOString();
-  var saved = await saveWorkout(currentProg);
-  if (saved) currentProg.id = saved.id;
-  progHistory.push(JSON.parse(JSON.stringify(currentProg)));
-  if (progHistory.length > 10) progHistory.shift();
-  progSaved = true;
-  btn.textContent = 'SALVATO';
-  document.getElementById('progRecalcBtn').style.display = 'none';
-  renderDay(currentDay);
-  renderHistList();
+
+  if (progSaved && currentProg.id) {
+    // Programma già salvato → aggiorna
+    await updateWorkout(currentProg.id, currentProg.giorni);
+    historyDirty = false;
+    btn.textContent = 'SALVATO';
+  } else {
+    // Nuovo programma → inserisci
+    currentProg.savedAt = new Date().toISOString();
+    var saved = await saveWorkout(currentProg);
+    if (saved) currentProg.id = saved.id;
+    progHistory.push(JSON.parse(JSON.stringify(currentProg)));
+    if (progHistory.length > 10) progHistory.shift();
+    progSaved = true;
+    historyDirty = false;
+    btn.textContent = 'SALVATO';
+    document.getElementById('progRecalcBtn').style.display = 'none';
+    renderDay(currentDay);
+    renderHistList();
+  }
 }
 
 function viewHist(i) {
@@ -1413,6 +1418,7 @@ function viewHist(i) {
   if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
   progSaved = true;
   editModeActive = false;
+  historyDirty = false;
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
