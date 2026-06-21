@@ -120,7 +120,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .phase-blk{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden}
 .phase-hd{padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
 .phase-nm{font-size:9px;font-weight:700;letter-spacing:3px;font-family:'JetBrains Mono',monospace}
-.phase-dur{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.phase-dur{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px}
 .ex-item{padding:13px 16px;border-bottom:1px solid var(--dim);cursor:pointer;transition:background .1s}
 .ex-item:last-child{border-bottom:none}
 .ex-item:active{background:var(--surface2)}
@@ -219,6 +219,11 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .ex-drag-handle{cursor:grab;touch-action:none;background:rgba(240,237,230,.1);border:1px solid var(--border);color:var(--text);font-size:17px;padding:5px 9px;border-radius:6px;flex-shrink:0;user-select:none;line-height:1;transition:all .15s}
 .ex-drag-handle:active{cursor:grabbing;background:rgba(58,191,170,.25);border-color:var(--teal);color:var(--teal)}
 .ex-item.dragging{opacity:.85;background:var(--surface2);box-shadow:0 6px 18px rgba(0,0,0,.45);position:relative;z-index:50}
+/* CUSTOM BLOCKS */
+.add-block-btn{width:100%;padding:14px;background:transparent;border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s}
+.add-block-btn:active{border-color:var(--teal);color:var(--teal)}
+.block-remove-btn{background:rgba(232,80,58,.14);border:1px solid rgba(232,80,58,.5);color:var(--red);font-size:11px;cursor:pointer;padding:3px 7px;line-height:1;border-radius:5px;transition:all .15s}
+.block-remove-btn:active{background:rgba(232,80,58,.3)}
 </style>
 </head>
 <body>
@@ -232,6 +237,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
   </div>
   <div class="swap-replacing">Stai sostituendo: <span id="swapCurrentName"></span></div>
   <div class="swap-filters">
+    <div class="swap-filter-row" id="swapFasePills"></div>
     <div class="swap-filter-row" id="swapCatPills"></div>
     <div class="swap-filter-row" id="swapDiffPills"></div>
   </div>
@@ -276,6 +282,10 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
     <button class="act-btn act-primary" onclick="goTo('sGen')">
       <span class="act-title">+ Nuovo programma</span>
       <span class="act-desc">Genera un piano personalizzato, niente scuse</span>
+    </button>
+    <button class="act-btn" onclick="goTo('sCustomSetup')">
+      <span class="act-title">Programma personalizzato</span>
+      <span class="act-desc">Scegli tu gli esercizi, blocco per blocco</span>
     </button>
     <button class="act-btn" onclick="goTo('sSetup')">
       <span class="act-title">Cambia livello</span>
@@ -392,6 +402,42 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
   </div>
 </div>
 
+<div id="sCustomSetup" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goTo('sHome')">&larr; BACK</button>
+    <div class="topbar-title">Programma personalizzato</div>
+  </div>
+  <div class="gen-body">
+    <div class="fg">
+      <div class="fg-lbl">TITOLO PROGRAMMA</div>
+      <input type="text" id="customTitleInput" placeholder="es. Settimana forza" maxlength="60">
+    </div>
+    <div class="fg">
+      <div class="fg-lbl">GIORNI A SETTIMANA</div>
+      <div class="pills" id="customDaysPills">
+        <button class="pill" style="color:var(--teal)" onclick="pickCustomDays(1,this)">1 GIORNO</button>
+        <button class="pill" style="color:var(--teal)" onclick="pickCustomDays(2,this)">2 GIORNI</button>
+        <button class="pill on" style="color:var(--teal);border-color:var(--teal)" onclick="pickCustomDays(3,this)">3 GIORNI</button>
+        <button class="pill" style="color:var(--teal)" onclick="pickCustomDays(4,this)">4 GIORNI</button>
+        <button class="pill" style="color:var(--teal)" onclick="pickCustomDays(5,this)">5 GIORNI</button>
+        <button class="pill" style="color:var(--teal)" onclick="pickCustomDays(6,this)">6 GIORNI</button>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fg-lbl">VOLUME (serie suggerite di partenza)</div>
+      <div class="pills" id="customTimePills">
+        <button class="pill" style="color:var(--gold)" onclick="pickCustomTime('leggero',this)">LEGGERO</button>
+        <button class="pill on" style="color:var(--gold);border-color:var(--gold)" onclick="pickCustomTime('standard',this)">STANDARD</button>
+        <button class="pill" style="color:var(--gold)" onclick="pickCustomTime('intenso',this)">INTENSO</button>
+      </div>
+    </div>
+    <div class="card-sub" style="font-size:11px;line-height:1.7">
+      Dopo aver creato il programma, per ogni giorno potrai aggiungere blocchi liberi (es. "Riscaldamento", "Forza", "Finisher") e scegliere tu gli esercizi da inserire.
+    </div>
+    <button class="btn-gold" onclick="doCreateCustom()">CREA PROGRAMMA &rarr;</button>
+  </div>
+</div>
+
 <div id="sLoad" class="screen">
   <div class="spin">&#8635;</div>
   <div class="load-title">ARRIVO AMO UN ATTIMO</div>
@@ -467,6 +513,7 @@ var currentDay = 0;
 var progSaved = false;
 var editModeActive = false;
 var historyDirty = false;
+var KNOWN_FASES = ['potenziamento','skill','core'];
 
 function markDirty() {
   if (!progSaved || !currentProg.id) return;
@@ -484,6 +531,7 @@ var form = {
   time: 'standard',
   balance: 50
 };
+var customForm = { days: 3, time: 'standard' };
 // ── Algoritmo deterministico ───────────────────────────
 
 var SKILL_ID_MAP = {
@@ -642,7 +690,7 @@ function buildDay(dayFocus, counts, context) {
     fasi.push({ nome: 'SKILL', esercizi: selectForPhase('skill', counts.skillEx, context) });
   }
   if (counts.coreEx > 0) {
-    fasi.push({ nome: 'CORE', esercizi: selectForPhase('core', counts.coreEx, context) });
+    fasi.push({ nome: 'CORE', circuito: true, esercizi: selectForPhase('core', counts.coreEx, context) });
   }
 
   return {
@@ -862,6 +910,7 @@ function renderHistList() {
     var focusTags = p.giorni.map(function(g){ return '<span class="tag tg">'+g.focus.substring(0,5).toUpperCase()+'</span>'; }).join('');
     var skillTag = (p.inputs && p.inputs.skill && p.inputs.skill !== 'Nessuno') ? '<span class="tag ts">'+p.inputs.skill.toUpperCase()+'</span>' : '';
     var timeTag = p.inputs ? '<span class="tag tm">'+( typeof p.inputs.time === 'string' ? p.inputs.time.toUpperCase() : p.inputs.time+' MIN')+'</span>' : '';
+    var customTag = (p.inputs && p.inputs.custom) ? '<span class="tag ts">SU MISURA</span>' : '';
     return '<div class="hist-card">' +
       '<div class="hist-top" onclick="viewHist('+idx+')">' +
         '<span class="hist-date">'+date+'</span>' +
@@ -871,7 +920,7 @@ function renderHistList() {
           '<button class="del-btn" onclick="event.stopPropagation();deleteHist('+idx+')">&#10005;</button>' +
         '</span>' +
       '</div>' +
-      '<div class="tags" onclick="viewHist('+idx+')">'+focusTags+skillTag+timeTag+'</div></div>';
+      '<div class="tags" onclick="viewHist('+idx+')">'+customTag+focusTags+skillTag+timeTag+'</div></div>';
   }).join('');
 }
 
@@ -894,7 +943,6 @@ function dupHist(idx) {
   renderProg(currentProg);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
-  document.getElementById('progRecalcBtn').style.display = '';
   goTo('sProg');
 }
 
@@ -1030,15 +1078,79 @@ function doGenerate() {
   }, 3000);
 }
 
+// ── Custom program ──────────────────────────────────────
+function pickCustomDays(n, btn) {
+  customForm.days = n;
+  document.querySelectorAll('#customDaysPills .pill').forEach(function(b){ b.classList.remove('on'); b.style.borderColor=''; });
+  btn.classList.add('on'); btn.style.borderColor = 'var(--teal)';
+}
+
+function pickCustomTime(v, btn) {
+  customForm.time = v;
+  document.querySelectorAll('#customTimePills .pill').forEach(function(b){ b.classList.remove('on'); b.style.borderColor=''; });
+  btn.classList.add('on'); btn.style.borderColor = 'var(--gold)';
+}
+
+function doCreateCustom() {
+  var titolo = document.getElementById('customTitleInput').value.trim() || 'Programma personalizzato';
+  var giorni = [];
+  for (var i = 0; i < customForm.days; i++) {
+    giorni.push({ label: 'GIORNO ' + (i+1), focus: 'Personalizzato', fasi: [] });
+  }
+  currentProg = {
+    titolo: titolo,
+    giorni: giorni,
+    inputs: { custom: true, time: customForm.time, days: customForm.days }
+  };
+  document.getElementById('customTitleInput').value = '';
+  progSaved = false;
+  renderProg(currentProg);
+  goTo('sProg');
+}
+
+function addBlock(dayIdx) {
+  var nome = prompt('Nome del blocco (es. Riscaldamento, Forza, Finisher):');
+  if (!nome || !nome.trim()) return;
+  nome = nome.trim().toUpperCase();
+  var fasi = currentProg.giorni[dayIdx].fasi;
+  var base = nome, n = 2;
+  while (fasi.some(function(f){ return f.nome === nome; })) {
+    nome = base + ' ' + n;
+    n++;
+  }
+  var isCircuito = confirm('Blocco a circuito (giri × ripetizioni)?\n\nOK = Sì, circuito\nAnnulla = No, serie normali');
+  var fase = { nome: nome, circuito: isCircuito, esercizi: [] };
+  if (isCircuito) {
+    var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
+    var giriMap = { leggero: 2, standard: 3, intenso: 4 };
+    fase.giri = giriMap[volume] || 3;
+  }
+  fasi.push(fase);
+  renderDay(dayIdx);
+  markDirty();
+}
+
+function removeBlock(dayIdx, faseNome) {
+  if (!confirm('Eliminare il blocco "' + faseNome + '" e tutti i suoi esercizi?')) return;
+  var fasi = currentProg.giorni[dayIdx].fasi;
+  var idx = fasi.findIndex(function(f){ return f.nome === faseNome; });
+  if (idx < 0) return;
+  fasi.splice(idx, 1);
+  renderDay(dayIdx);
+  markDirty();
+}
+
 // ── Program view ───────────────────────────────────────
 var phColors = { POTENZIAMENTO: 'var(--gold)', SKILL: 'var(--purple)', CORE: 'var(--teal)' };
 
 function renderProg(prog) {
   document.getElementById('progTitle').textContent = prog.titolo || 'Programma';
+  var inputs = prog.inputs || {};
   var th = '<span class="tag tg">' + prog.giorni.length + ' GIORNI</span>';
-  th += '<span class="tag tg">' + form.time.toUpperCase() + '</span>';
-  if (form.skill !== 'Nessuno') th += '<span class="tag ts">' + form.skill.toUpperCase() + '</span>';
-  if (form.muscle !== 'Nessuno') th += '<span class="tag tm">' + form.muscle.toUpperCase() + '</span>';
+  if (inputs.custom) th += '<span class="tag ts">SU MISURA</span>';
+  if (inputs.time) th += '<span class="tag tg">' + inputs.time.toUpperCase() + '</span>';
+  if (inputs.skill && inputs.skill !== 'Nessuno') th += '<span class="tag ts">' + inputs.skill.toUpperCase() + '</span>';
+  if (inputs.muscle && inputs.muscle !== 'Nessuno') th += '<span class="tag tm">' + inputs.muscle.toUpperCase() + '</span>';
   document.getElementById('progTags').innerHTML = th;
   document.getElementById('dayTabs').innerHTML = prog.giorni.map(function(g, i){
     return '<button class="dtab'+(i===0?' on':'')+'" onclick="switchDay('+i+')">' +
@@ -1050,7 +1162,7 @@ function renderProg(prog) {
   renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
-  document.getElementById('progRecalcBtn').style.display = '';
+  document.getElementById('progRecalcBtn').style.display = inputs.custom ? 'none' : '';
 }
 
 function switchDay(i) {
@@ -1064,10 +1176,13 @@ function renderDay(i) {
   var canEdit = !progSaved || editModeActive;
   var volume = (currentProg.inputs && currentProg.inputs.time) || form.time || 'standard';
   var giriMap = { leggero: 2, standard: 3, intenso: 4 };
-  document.getElementById('dayBody').innerHTML = g.fasi.map(function(fase) {
-    var col = phColors[fase.nome] || 'var(--gold)';
-    var isCore = fase.nome === 'CORE';
+  var blocksHtml = g.fasi.map(function(fase) {
+    var isCore = fase.circuito === true || fase.nome === 'CORE';
+    var col = phColors[fase.nome] || (isCore ? 'var(--teal)' : 'var(--gold)');
     var giri = fase.giri || giriMap[volume] || 3;
+    var removeBlockBtn = canEdit
+      ? '<button class="block-remove-btn" onclick="event.stopPropagation();removeBlock('+i+',\''+fase.nome+'\')" title="Elimina blocco">✕ BLOCCO</button>'
+      : '';
     var exHtml = fase.esercizi.map(function(ex, ei) {
       var dbEx = EX[ex.id];
       if (!dbEx) return '';
@@ -1107,13 +1222,17 @@ function renderDay(i) {
     var phaseHeader = isCore
       ? (function() {
           var giriEl = canEdit
-            ? '<input class="ex-sets-input" value="'+giri+'" onclick="event.stopPropagation()" onblur="saveGiriEdit(this,'+i+')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+';width:24px;text-align:center"> <span style="font-size:9px;font-family:\'JetBrains Mono\',monospace;color:'+col+'">GIRI</span>'
+            ? '<input class="ex-sets-input" value="'+giri+'" onclick="event.stopPropagation()" onblur="saveGiriEdit(this,'+i+',\''+fase.nome+'\')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+';width:24px;text-align:center"> <span style="font-size:9px;font-family:\'JetBrains Mono\',monospace;color:'+col+'">GIRI</span>'
             : giri+' GIRI';
-          return '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">CORE</span><span class="phase-dur" style="color:'+col+'">'+giriEl+'</span></div>';
+          return '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span><span class="phase-dur" style="color:'+col+'">'+giriEl+removeBlockBtn+'</span></div>';
         })()
-      : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span></div>';
+      : '<div class="phase-hd"><span class="phase-nm" style="color:'+col+'">'+fase.nome+'</span><span class="phase-dur">'+removeBlockBtn+'</span></div>';
     return '<div class="phase-blk">' + phaseHeader + exHtml + addRow + '</div>';
   }).join('');
+  var addBlockRow = canEdit
+    ? '<button class="add-block-btn" onclick="addBlock('+i+')">＋ AGGIUNGI BLOCCO</button>'
+    : '';
+  document.getElementById('dayBody').innerHTML = blocksHtml + addBlockRow;
   if (progSaved && !editModeActive) attachLongPress();
   attachDragHandlers();
 }
@@ -1240,7 +1359,7 @@ function doExport() {
   var el = document.getElementById('dayBody');
   if (!el) return;
   // Nascondi temporaneamente i bottoni di edit durante lo screenshot
-  var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row,.ex-drag-handle');
+  var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row,.ex-drag-handle,.add-block-btn,.block-remove-btn');
   btns.forEach(function(b){ b.style.display = 'none'; });
   // Sostituisci input con span per lo screenshot
   var inputs = el.querySelectorAll('.ex-sets-input');
@@ -1299,11 +1418,11 @@ function saveSerieEdit(input, dayIdx, faseNome, exIdx) {
   markDirty();
 }
 
-function saveGiriEdit(input, dayIdx) {
+function saveGiriEdit(input, dayIdx, faseNome) {
   var val = parseInt(input.value.trim());
   if (!val || val < 1) { renderDay(dayIdx); return; }
   var fase = currentProg.giorni[dayIdx].fasi
-    .find(function(f){ return f.nome === 'CORE'; });
+    .find(function(f){ return f.nome === faseNome; });
   if (!fase) return;
   fase.giri = val;
   markDirty();
@@ -1312,7 +1431,7 @@ function saveGiriEdit(input, dayIdx) {
 function removeEx(dayIdx, faseNome, exIdx) {
   var fase = currentProg.giorni[dayIdx].fasi
     .find(function(f){ return f.nome === faseNome; });
-  if (!fase || fase.esercizi.length <= 1) return;
+  if (!fase) return;
   var dbEx = EX[fase.esercizi[exIdx].id];
   var nome = dbEx ? dbEx.name : 'questo esercizio';
   if (!confirm('Rimuovere "' + nome + '"?')) return;
@@ -1322,66 +1441,44 @@ function removeEx(dayIdx, faseNome, exIdx) {
 }
 
 function openAdd(dayIdx, faseNome) {
-  var fase = faseNome.toLowerCase();
-  swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: -1, fase: fase }; // exIdx -1 = modalità aggiungi
-  swapFilters = { cat: '', diff: 0 };
+  var faseObj = currentProg.giorni[dayIdx].fasi.find(function(f){ return f.nome === faseNome; });
+  var isCircuito = faseObj && (faseObj.circuito === true || faseObj.nome === 'CORE');
+  var faseKey = faseNome.toLowerCase();
+  var lockedFase = KNOWN_FASES.indexOf(faseKey) >= 0 ? faseKey : null;
+  var col = phColors[faseNome] || (isCircuito ? 'var(--teal)' : 'var(--gold)');
+  swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: -1, fase: lockedFase, col: col };
+  swapFilters = { cat: '', diff: 0, faseTag: '' };
 
   document.getElementById('swapCurrentName').textContent = faseNome;
   document.querySelector('.swap-title').textContent = 'Aggiungi';
   document.querySelector('.swap-replacing').style.display = 'none';
 
-  var cats = [];
-  DB_RAW.esercizi.forEach(function(e) {
-    if (e.fase === fase && cats.indexOf(e.categoria) < 0) cats.push(e.categoria);
-  });
-  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX' };
-  document.getElementById('swapCatPills').innerHTML =
-    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'cat\',\'\',this)">TUTTE</button>' +
-    cats.map(function(c) {
-      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'cat\',\''+c+'\',this)">'+(catLabels[c]||c.toUpperCase())+'</button>';
-    }).join('');
-  document.getElementById('swapDiffPills').innerHTML =
-    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'diff\',0,this)">LV TUTTI</button>' +
-    [1,2,3,4,5].map(function(n) {
-      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'diff\','+n+',this)">LV '+n+'</button>';
-    }).join('');
-
+  renderSwapFilterPills();
+  renderSwapDiffPills();
   renderSwapList();
   document.getElementById('swapOverlay').classList.add('open');
 }
 
 // ── Swap logic ─────────────────────────────────────────
-var swapTarget = null; // { dayIdx, faseNome, exIdx, fase }
-var swapFilters = { cat: '', diff: 0 };
+var swapTarget = null; // { dayIdx, faseNome, exIdx, fase, col }
+var swapFilters = { cat: '', diff: 0, faseTag: '' };
 
 function openSwap(dayIdx, faseNome, exIdx) {
-  var fase = faseNome.toLowerCase(); // 'potenziamento' | 'skill' | 'core'
-  var currentEx = currentProg.giorni[dayIdx].fasi
-    .find(function(f){ return f.nome === faseNome; }).esercizi[exIdx];
-  swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: exIdx, fase: fase };
-  swapFilters = { cat: '', diff: 0 };
+  var faseObj = currentProg.giorni[dayIdx].fasi.find(function(f){ return f.nome === faseNome; });
+  var isCircuito = faseObj && (faseObj.circuito === true || faseObj.nome === 'CORE');
+  var currentEx = faseObj.esercizi[exIdx];
+  var faseKey = faseNome.toLowerCase();
+  var lockedFase = KNOWN_FASES.indexOf(faseKey) >= 0 ? faseKey : null;
+  var col = phColors[faseNome] || (isCircuito ? 'var(--teal)' : 'var(--gold)');
+  swapTarget = { dayIdx: dayIdx, faseNome: faseNome, exIdx: exIdx, fase: lockedFase, col: col };
+  swapFilters = { cat: '', diff: 0, faseTag: '' };
 
   document.getElementById('swapCurrentName').textContent = EX[currentEx.id] ? EX[currentEx.id].name : currentEx.id;
+  document.querySelector('.swap-title').textContent = 'Sostituisci';
+  document.querySelector('.swap-replacing').style.display = '';
 
-  // Categoria pills — solo le categorie presenti nella fase
-  var cats = [];
-  DB_RAW.esercizi.forEach(function(e) {
-    if (e.fase === fase && cats.indexOf(e.categoria) < 0) cats.push(e.categoria);
-  });
-  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX' };
-  document.getElementById('swapCatPills').innerHTML =
-    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'cat\',\'\',this)">TUTTE</button>' +
-    cats.map(function(c) {
-      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'cat\',\''+c+'\',this)">'+(catLabels[c]||c.toUpperCase())+'</button>';
-    }).join('');
-
-  // Difficoltà pills
-  document.getElementById('swapDiffPills').innerHTML =
-    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'diff\',0,this)">LV TUTTI</button>' +
-    [1,2,3,4,5].map(function(n) {
-      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'diff\','+n+',this)">LV '+n+'</button>';
-    }).join('');
-
+  renderSwapFilterPills();
+  renderSwapDiffPills();
   renderSwapList();
   document.getElementById('swapOverlay').classList.add('open');
 }
@@ -1393,8 +1490,51 @@ function closeSwap() {
   swapTarget = null;
 }
 
+function renderSwapFilterPills() {
+  var fase = swapTarget.fase; // bloccata (potenziamento/skill/core) oppure null = libera
+  var faseRow = document.getElementById('swapFasePills');
+  if (!fase) {
+    faseRow.style.display = '';
+    var faseOpts = [['', 'TUTTE LE FASI', 'var(--text)'], ['potenziamento','POTENZ.','var(--gold)'], ['skill','SKILL','var(--purple)'], ['core','CORE','var(--teal)']];
+    faseRow.innerHTML = faseOpts.map(function(o) {
+      var on = swapFilters.faseTag === o[0];
+      return '<button class="lib-pill'+(on?' on':'')+'" style="color:'+o[2]+(on?';border-color:'+o[2]:'')+'" onclick="swapFilter(\'faseTag\',\''+o[0]+'\',this)">'+o[1]+'</button>';
+    }).join('');
+  } else {
+    faseRow.style.display = 'none';
+  }
+
+  var cats = [];
+  DB_RAW.esercizi.forEach(function(e) {
+    if (fase && e.fase !== fase) return;
+    if (!fase && swapFilters.faseTag && e.fase !== swapFilters.faseTag) return;
+    if (cats.indexOf(e.categoria) < 0) cats.push(e.categoria);
+  });
+  var catLabels = { spinta:'SPINTA', tirata:'TIRATA', core:'CORE', gambe:'GAMBE', mix:'MIX' };
+  document.getElementById('swapCatPills').innerHTML =
+    '<button class="lib-pill'+(swapFilters.cat===''?' on':'')+'" style="color:var(--text)'+(swapFilters.cat===''?';border-color:var(--text)':'')+'" onclick="swapFilter(\'cat\',\'\',this)">TUTTE</button>' +
+    cats.map(function(c) {
+      var on = swapFilters.cat === c;
+      return '<button class="lib-pill'+(on?' on':'')+'" style="color:var(--muted)'+(on?';border-color:var(--muted)':'')+'" onclick="swapFilter(\'cat\',\''+c+'\',this)">'+(catLabels[c]||c.toUpperCase())+'</button>';
+    }).join('');
+}
+
+function renderSwapDiffPills() {
+  document.getElementById('swapDiffPills').innerHTML =
+    '<button class="lib-pill on" style="color:var(--text);border-color:var(--text)" onclick="swapFilter(\'diff\',0,this)">LV TUTTI</button>' +
+    [1,2,3,4,5].map(function(n) {
+      return '<button class="lib-pill" style="color:var(--muted)" onclick="swapFilter(\'diff\','+n+',this)">LV '+n+'</button>';
+    }).join('');
+}
+
 function swapFilter(key, val, btn) {
   swapFilters[key] = val;
+  if (key === 'faseTag') {
+    swapFilters.cat = '';
+    renderSwapFilterPills();
+    renderSwapList();
+    return;
+  }
   var rowId = key === 'cat' ? 'swapCatPills' : 'swapDiffPills';
   document.querySelectorAll('#' + rowId + ' .lib-pill').forEach(function(b) {
     b.classList.remove('on'); b.style.borderColor = '';
@@ -1410,13 +1550,14 @@ function renderSwapList() {
     .find(function(f){ return f.nome === swapTarget.faseNome; }).esercizi[swapTarget.exIdx].id;
 
   var filtered = DB_RAW.esercizi.filter(function(e) {
-    if (e.fase !== swapTarget.fase) return false;
+    if (swapTarget.fase && e.fase !== swapTarget.fase) return false;
+    if (!swapTarget.fase && swapFilters.faseTag && e.fase !== swapFilters.faseTag) return false;
     if (swapFilters.cat && e.categoria !== swapFilters.cat) return false;
     if (swapFilters.diff && e.difficolta !== swapFilters.diff) return false;
     return true;
   });
 
-  var faseCol = { potenziamento: 'var(--gold)', skill: 'var(--purple)', core: 'var(--teal)' }[swapTarget.fase] || 'var(--muted)';
+  var faseCol = swapTarget.col || 'var(--muted)';
   var el = document.getElementById('swapList');
   el.innerHTML = '<div class="swap-count">' + filtered.length + ' esercizi</div>' +
     filtered.map(function(e) {
@@ -1487,7 +1628,7 @@ async function doSaveProgram() {
 
 function viewHist(i) {
   currentProg = progHistory[i];
-  if (currentProg.inputs) form = JSON.parse(JSON.stringify(currentProg.inputs));
+  if (currentProg.inputs && !currentProg.inputs.custom) form = JSON.parse(JSON.stringify(currentProg.inputs));
   progSaved = true;
   editModeActive = false;
   historyDirty = false;
