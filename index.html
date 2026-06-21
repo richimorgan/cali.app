@@ -215,11 +215,10 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 .edit-banner-close{background:none;border:1px solid #3ABFAA44;color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;padding:4px 8px;border-radius:3px}
 /* EXPORT BUTTON */
 .export-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;padding:8px 12px;border-radius:4px}
-/* REORDER BUTTONS */
-.ex-reorder{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
-.ex-reorder-btn{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:1px 4px;line-height:1;transition:color .15s}
-.ex-reorder-btn:active{color:var(--teal)}
-.ex-reorder-btn:disabled{opacity:.2;cursor:default}
+/* DRAG TO REORDER */
+.ex-drag-handle{cursor:grab;touch-action:none;color:var(--dim);font-size:15px;padding:4px 8px;flex-shrink:0;user-select:none;line-height:1;transition:color .15s}
+.ex-drag-handle:active{cursor:grabbing;color:var(--teal)}
+.ex-item.dragging{opacity:.85;background:var(--surface2);box-shadow:0 6px 18px rgba(0,0,0,.45);position:relative;z-index:50}
 </style>
 </head>
 <body>
@@ -1079,11 +1078,8 @@ function renderDay(i) {
       var removeBtn = canEdit
         ? '<button class="ex-remove-btn" title="Rimuovi" onclick="event.stopPropagation();removeEx('+i+',\''+fase.nome+'\','+ei+')">✕</button>'
         : '';
-      var reorderBtns = canEdit
-        ? '<div class="ex-reorder">' +
-            '<button class="ex-reorder-btn" onclick="event.stopPropagation();moveEx('+i+',\''+fase.nome+'\','+ei+',-1)"' + (ei===0?' disabled':'') + '>▲</button>' +
-            '<button class="ex-reorder-btn" onclick="event.stopPropagation();moveEx('+i+',\''+fase.nome+'\','+ei+',1)"' + (ei===fase.esercizi.length-1?' disabled':'') + '>▼</button>' +
-          '</div>'
+      var dragHandle = canEdit
+        ? '<div class="ex-drag-handle" onclick="event.stopPropagation()" data-day="'+i+'" data-fase="'+fase.nome+'" data-idx="'+ei+'" title="Trascina per riordinare">⠿</div>'
         : '';
       var serieEl = canEdit
         ? '<input class="ex-sets-input" value="'+displaySerie+'" onclick="event.stopPropagation()" onblur="saveSerieEdit(this,'+i+',\''+fase.nome+'\','+ei+')" onkeydown="if(event.key===\'Enter\'){this.blur()}" style="color:'+col+'">'
@@ -1096,7 +1092,7 @@ function renderDay(i) {
         '<div class="ex-mt">'+serieEl+
         '<span class="ex-tool">· '+dbEx.attrezzo.join(', ')+'</span></div></div>' +
         removeBtn +
-        reorderBtns +
+        dragHandle +
         swapBtn +
         '<span class="ex-chv">&#8250;</span></div>' +
         '<div class="ex-desc">'+dbEx.descrizione+'<br><br>' +
@@ -1119,6 +1115,7 @@ function renderDay(i) {
     return '<div class="phase-blk">' + phaseHeader + exHtml + addRow + '</div>';
   }).join('');
   if (progSaved && !editModeActive) attachLongPress();
+  attachDragHandlers();
 }
 
 function togEx(card) {
@@ -1154,11 +1151,96 @@ function attachLongPress() {
   });
 }
 
+// ── Drag and drop riordino esercizi ─────────────────────
+var dragState = null;
+
+function attachDragHandlers() {
+  document.querySelectorAll('.ex-drag-handle').forEach(function(handle) {
+    handle.addEventListener('pointerdown', onDragStart);
+  });
+}
+
+function onDragStart(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  var handle = e.currentTarget;
+  var item = handle.closest('.ex-item');
+  dragState = {
+    item: item,
+    list: item.parentNode,
+    dayIdx: parseInt(handle.dataset.day),
+    faseNome: handle.dataset.fase,
+    startIdx: parseInt(handle.dataset.idx),
+    currentIdx: parseInt(handle.dataset.idx),
+    startY: e.clientY
+  };
+  item.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  var dy = e.clientY - dragState.startY;
+  dragState.item.style.transform = 'translateY(' + dy + 'px)';
+
+  var items = Array.prototype.slice.call(dragState.list.querySelectorAll('.ex-item'));
+  var draggedRect = dragState.item.getBoundingClientRect();
+  var draggedMid = draggedRect.top + draggedRect.height / 2;
+
+  for (var idx = 0; idx < items.length; idx++) {
+    var other = items[idx];
+    if (other === dragState.item) continue;
+    var r = other.getBoundingClientRect();
+    var otherMid = r.top + r.height / 2;
+    if ((idx < dragState.currentIdx && draggedMid < otherMid) ||
+        (idx > dragState.currentIdx && draggedMid > otherMid)) {
+      if (idx > dragState.currentIdx) {
+        other.parentNode.insertBefore(dragState.item, other.nextSibling);
+      } else {
+        other.parentNode.insertBefore(dragState.item, other);
+      }
+      dragState.currentIdx = idx;
+      dragState.startY = e.clientY;
+      dragState.item.style.transform = 'translateY(0px)';
+      break;
+    }
+  }
+}
+
+function onDragEnd() {
+  if (!dragState) return;
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
+  document.body.style.userSelect = '';
+
+  dragState.item.classList.remove('dragging');
+  dragState.item.style.transform = '';
+
+  if (dragState.currentIdx !== dragState.startIdx) {
+    reorderExercise(dragState.dayIdx, dragState.faseNome, dragState.startIdx, dragState.currentIdx);
+  }
+  dragState = null;
+}
+
+function reorderExercise(dayIdx, faseNome, fromIdx, toIdx) {
+  var fase = currentProg.giorni[dayIdx].fasi.find(function(f){ return f.nome === faseNome; });
+  if (!fase) return;
+  var moved = fase.esercizi.splice(fromIdx, 1)[0];
+  fase.esercizi.splice(toIdx, 0, moved);
+  renderDay(dayIdx);
+  markDirty();
+}
+
 function doExport() {
   var el = document.getElementById('dayBody');
   if (!el) return;
   // Nascondi temporaneamente i bottoni di edit durante lo screenshot
-  var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row');
+  var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row,.ex-drag-handle');
   btns.forEach(function(b){ b.style.display = 'none'; });
   // Sostituisci input con span per lo screenshot
   var inputs = el.querySelectorAll('.ex-sets-input');
@@ -1231,20 +1313,10 @@ function removeEx(dayIdx, faseNome, exIdx) {
   var fase = currentProg.giorni[dayIdx].fasi
     .find(function(f){ return f.nome === faseNome; });
   if (!fase || fase.esercizi.length <= 1) return;
+  var dbEx = EX[fase.esercizi[exIdx].id];
+  var nome = dbEx ? dbEx.name : 'questo esercizio';
+  if (!confirm('Rimuovere "' + nome + '"?')) return;
   fase.esercizi.splice(exIdx, 1);
-  renderDay(dayIdx);
-  markDirty();
-}
-
-function moveEx(dayIdx, faseNome, exIdx, dir) {
-  var fase = currentProg.giorni[dayIdx].fasi
-    .find(function(f){ return f.nome === faseNome; });
-  if (!fase) return;
-  var newIdx = exIdx + dir;
-  if (newIdx < 0 || newIdx >= fase.esercizi.length) return;
-  var tmp = fase.esercizi[exIdx];
-  fase.esercizi[exIdx] = fase.esercizi[newIdx];
-  fase.esercizi[newIdx] = tmp;
   renderDay(dayIdx);
   markDirty();
 }
