@@ -451,6 +451,7 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
     <button class="prog-back" onclick="goTo('sHome')">&larr; HOME</button>
     <button class="prog-back" id="progRecalcBtn" onclick="doRecalc()">&#8635; RICALCOLA</button>
     <button class="export-btn" onclick="doExport()" title="Esporta PNG">&#8681;</button>
+    <button class="prog-back" id="progEditBtn" onclick="toggleEditMode()" style="display:none">✏ MODIFICA</button>
     <button class="prog-save" id="progSaveBtn" onclick="doSaveProgram()">SALVA</button>
   </div>
   <div class="edit-banner" id="editBanner">
@@ -1198,6 +1199,9 @@ function renderProg(prog) {
   currentDay = 0;
   editModeActive = false;
   document.getElementById('editBanner').classList.remove('on');
+  var editBtn = document.getElementById('progEditBtn');
+  editBtn.style.display = 'none';
+  editBtn.textContent = '\u270f MODIFICA';
   renderDay(0);
   document.getElementById('progSaveBtn').disabled = false;
   document.getElementById('progSaveBtn').textContent = 'SALVA';
@@ -1289,30 +1293,25 @@ function togEx(card) {
 function enterEditMode() {
   editModeActive = true;
   document.getElementById('editBanner').classList.add('on');
+  var btn = document.getElementById('progEditBtn');
+  if (btn) btn.textContent = '\u270f ESCI';
   renderDay(currentDay);
 }
 
 function exitEditMode() {
   editModeActive = false;
   document.getElementById('editBanner').classList.remove('on');
+  var btn = document.getElementById('progEditBtn');
+  if (btn) btn.textContent = '\u270f MODIFICA';
   renderDay(currentDay);
 }
 
-// Long press detection (500ms) on ex-item rows — attaches after renderDay
-function attachLongPress() {
-  if (!progSaved) return; // non serve se già in edit mode libero
-  var items = document.querySelectorAll('#dayBody .ex-item');
-  items.forEach(function(item) {
-    var timer = null;
-    item.addEventListener('touchstart', function(e) {
-      timer = setTimeout(function() { enterEditMode(); }, 500);
-    }, { passive: true });
-    item.addEventListener('touchend', function() { clearTimeout(timer); });
-    item.addEventListener('touchmove', function() { clearTimeout(timer); });
-    // Desktop: doppio click
-    item.addEventListener('dblclick', function() { enterEditMode(); });
-  });
+function toggleEditMode() {
+  if (editModeActive) { exitEditMode(); } else { enterEditMode(); }
 }
+
+// Long press rimosso -- ora si usa il pulsante MODIFICA in topbar
+function attachLongPress() {}
 
 // ── Drag and drop riordino esercizi ─────────────────────
 var dragState = null;
@@ -1665,6 +1664,7 @@ async function doSaveProgram() {
     historyDirty = false;
     btn.textContent = 'SALVATO';
     document.getElementById('progRecalcBtn').style.display = 'none';
+    document.getElementById('progEditBtn').style.display = '';
     renderDay(currentDay);
     renderHistList();
   }
@@ -1680,6 +1680,7 @@ function viewHist(i) {
   document.getElementById('progSaveBtn').disabled = true;
   document.getElementById('progSaveBtn').textContent = 'SALVATO';
   document.getElementById('progRecalcBtn').style.display = 'none';
+  document.getElementById('progEditBtn').style.display = '';
   goTo('sProg');
 }
 
