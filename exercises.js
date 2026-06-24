@@ -4166,9 +4166,7 @@ var DB_RAW = {
       },
       "media": null,
       "descrizione": "Sdraiato con le ginocchia piegate verso il petto, solleva il bacino portando le ginocchia verso il viso contraendo gli addominali. Senti lavorare: core inferiore e obliqui. Errore comune: usare il momentum dondolando invece di contrarre attivamente il core."
-    }
-  ]
-},
+    },
     {
       "id": "bodyweight_bicep_curl",
       "name": "Bodyweight Bicep Curl",
@@ -4313,3 +4311,5 @@ var DB_RAW = {
       "media": null,
       "descrizione": "Posizione di plank con le mani ruotate così che le dita puntino verso le ginocchia (presa inversa). Esegui una flessione lenta scendendo fino a sfiorare terra e risalendo. Puoi iniziare in ginocchio per ridurre il carico. Senti lavorare: flessori ed estensori del polso in forza eccentrica e concentrica, fondamentale per la salute dei polsi in planche e handstand. Errore comune: far aprire i gomiti lateralmente — tienili vicini al busto per non caricare male i polsi."
     }
+  ]
+};
