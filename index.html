@@ -501,8 +501,6 @@ select{width:100%;padding:9px 10px;background:var(--surface2);border:1px solid v
 var EX = {};
 DB_RAW.esercizi.forEach(function(e){ EX[e.id] = e; });
 
-DB_RAW.esercizi.forEach(function(e){ EX[e.id] = e; });
-
 // ── Supabase ───────────────────────────────────────────
 var SUPABASE_URL = 'https://gspynnoiolfxvdtunlox.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcHlubm9pb2xmeHZkdHVubG94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwOTAzNTAsImV4cCI6MjA5NjY2NjM1MH0.3Ouumvw6kDw-T8TKH65S5A7L0YjdEi5WIOMQQhXP4WE';
@@ -535,7 +533,16 @@ var form = {
   balance: 50
 };
 var customForm = { days: 3, time: 'standard' };
+
 // ── Algoritmo deterministico ───────────────────────────
+
+// Esercizi fondamentali: ricevono un bonus di score fisso
+var FUNDAMENTAL_IDS = [
+  'push_up', 'dips', 'pull_up', 'chin_up',
+  'australian_row', 'squat', 'pike_push_up',
+  'hollow_body', 'plank'
+];
+var FUNDAMENTAL_BONUS = 35;
 
 var SKILL_ID_MAP = {
   'Planche':        'full_planche',
@@ -597,12 +604,14 @@ function filterCandidates(fase, context) {
 function scoreExercise(ex, context) {
   var score = 100;
 
-  // VARIETÀ — penalizza esercizi recenti
-  var recentExIds = context.recentExIds || [];
-  var lastProg  = recentExIds[0] || [];
-  var prevProg  = recentExIds[1] || [];
-  if (lastProg.indexOf(ex.id) >= 0)  score -= 60;
-  if (prevProg.indexOf(ex.id) >= 0)  score -= 30;
+  // VARIETÀ — penalizza esercizi recenti (escluso core)
+  if (ex.fase !== 'core') {
+    var recentExIds = context.recentExIds || [];
+    var lastProg  = recentExIds[0] || [];
+    var prevProg  = recentExIds[1] || [];
+    if (lastProg.indexOf(ex.id) >= 0)  score -= 60;
+    if (prevProg.indexOf(ex.id) >= 0)  score -= 30;
+  }
 
   // PATTERN — evita duplicati nella stessa sessione
   var patternsUsed = context.patternsUsedToday || [];
@@ -630,6 +639,9 @@ function scoreExercise(ex, context) {
   if (ex.difficolta === context.level)     score += 20;
   if (ex.difficolta === context.level - 1) score += 10;
   if (ex.difficolta === context.level + 1) score += 5;
+
+  // FONDAMENTALI — bonus priorità
+  if (FUNDAMENTAL_IDS.indexOf(ex.id) >= 0) score += FUNDAMENTAL_BONUS;
 
   // RUMORE — impedisce output identico ogni volta
   score += Math.floor(Math.random() * 31) - 15;
@@ -705,11 +717,15 @@ function buildDay(dayFocus, counts, context) {
 
 function buildProgram(form, progHistory) {
   // Esercizi recenti per anti-ripetizione (ultimi 2 programmi)
+  // Gli esercizi core sono esclusi: il core non è soggetto ad anti-ripetizione
   var recentExIds = progHistory.slice(-2).map(function(p) {
     var ids = [];
     p.giorni.forEach(function(g) {
       g.fasi.forEach(function(f) {
-        f.esercizi.forEach(function(e) { ids.push(e.id); });
+        f.esercizi.forEach(function(e) {
+          var ex = EX[e.id];
+          if (ex && ex.fase !== 'core') ids.push(e.id);
+        });
       });
     });
     return ids;
@@ -1001,14 +1017,11 @@ function pickTime(v, btn) {
 }
 
 function calcBalance(val, volume) {
-  // idx 0 = tutto potenziamento, idx 4 = tutto skill
-  // slider 0 → idx 0, slider 100 → idx 4 (estremi eliminano la fase opposta)
   var base = {
     leggero:  { pot: [4,4,3,2,0], skill: [0,1,2,2,3], core: [2,2,2,2,2] },
     standard: { pot: [5,5,4,3,0], skill: [0,2,3,3,5], core: [4,4,4,4,4] },
     intenso:  { pot: [7,6,5,4,0], skill: [0,3,4,4,7], core: [4,4,4,5,5] }
   };
-  // val 0 → idx 0, val 1-24 → idx 1, 25-49 → idx 2, 50-74 → idx 3, 75-99 → idx 3, val 100 → idx 4
   var idx;
   if (val <= 0)        idx = 0;
   else if (val < 25)   idx = 1;
@@ -1143,8 +1156,6 @@ function removeBlock(dayIdx, faseNome) {
   markDirty();
 }
 
-// Un blocco è "a circuito" se il flag esplicito lo dice, oppure (compatibilità
-// con programmi vecchi) se non ha il flag e si chiama CORE.
 function isCircuitoBlock(fase) {
   return fase.circuito === true || (fase.circuito === undefined && fase.nome === 'CORE');
 }
@@ -1160,7 +1171,6 @@ function renameBlock(input, dayIdx, oldName) {
     renderDay(dayIdx);
     return;
   }
-  // Fissa il tipo esplicitamente prima di rinominare, così non dipende più dal nome
   if (fase.circuito === undefined) fase.circuito = isCircuitoBlock(fase);
   fase.nome = newName;
   renderDay(dayIdx);
@@ -1310,7 +1320,6 @@ function toggleEditMode() {
   if (editModeActive) { exitEditMode(); } else { enterEditMode(); }
 }
 
-// Long press rimosso -- ora si usa il pulsante MODIFICA in topbar
 function attachLongPress() {}
 
 // ── Drag and drop riordino esercizi ─────────────────────
@@ -1401,10 +1410,8 @@ function reorderExercise(dayIdx, faseNome, fromIdx, toIdx) {
 function doExport() {
   var el = document.getElementById('dayBody');
   if (!el) return;
-  // Nascondi temporaneamente i bottoni di edit durante lo screenshot
   var btns = el.querySelectorAll('.swap-btn,.ex-remove-btn,.ex-add-row,.ex-drag-handle,.add-block-btn,.block-remove-btn');
   btns.forEach(function(b){ b.style.display = 'none'; });
-  // Sostituisci input con span per lo screenshot
   var inputs = el.querySelectorAll('.ex-sets-input');
   inputs.forEach(function(inp) {
     inp.setAttribute('data-vis', '1');
@@ -1421,14 +1428,12 @@ function doExport() {
     useCORS: true,
     logging: false
   }).then(function(canvas) {
-    // Ripristina
     btns.forEach(function(b){ b.style.display = ''; });
     inputs.forEach(function(inp) {
       inp.style.display = '';
       var span = inp.parentNode.querySelector('span[class="ex-sets"]');
       if (span) span.parentNode.removeChild(span);
     });
-    // Download
     var link = document.createElement('a');
     var giorno = currentProg && currentProg.giorni[currentDay]
       ? currentProg.giorni[currentDay].label.replace(' ', '_')
@@ -1503,7 +1508,7 @@ function openAdd(dayIdx, faseNome) {
 }
 
 // ── Swap logic ─────────────────────────────────────────
-var swapTarget = null; // { dayIdx, faseNome, exIdx, fase, col }
+var swapTarget = null;
 var swapFilters = { cat: '', diff: 0, faseTag: '' };
 
 function openSwap(dayIdx, faseNome, exIdx) {
@@ -1534,7 +1539,7 @@ function closeSwap() {
 }
 
 function renderSwapFilterPills() {
-  var fase = swapTarget.fase; // bloccata (potenziamento/skill/core) oppure null = libera
+  var fase = swapTarget.fase;
   var faseRow = document.getElementById('swapFasePills');
   if (!fase) {
     faseRow.style.display = '';
@@ -1649,12 +1654,10 @@ async function doSaveProgram() {
   btn.disabled = true; btn.textContent = '...';
 
   if (progSaved && currentProg.id) {
-    // Programma già salvato → aggiorna
     await updateWorkout(currentProg.id, currentProg.giorni);
     historyDirty = false;
     btn.textContent = 'SALVATO';
   } else {
-    // Nuovo programma → inserisci
     currentProg.savedAt = new Date().toISOString();
     var saved = await saveWorkout(currentProg);
     if (saved) currentProg.id = saved.id;
